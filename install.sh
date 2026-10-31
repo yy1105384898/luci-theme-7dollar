@@ -8,16 +8,22 @@ REPO=yy1105384898/luci-theme-7dollar
 BRANCH=${BRANCH:-main}
 P=${PROXY:-}
 RAW="${P}https://raw.githubusercontent.com/$REPO/$BRANCH"
-TGZ="${P}https://github.com/$REPO/archive/refs/heads/$BRANCH.tar.gz"
+TGZ="${P}https://codeload.github.com/$REPO/tar.gz/$BRANCH"
 TMP=/tmp/7dollar.$$
 
 say()  { printf '\033[38;5;173m●\033[0m %s\n' "$*"; }
 die()  { printf '\033[31m✕ %s\033[0m\n' "$*"; rm -rf "$TMP"; exit 1; }
 get()  {
-	if command -v uclient-fetch >/dev/null 2>&1; then uclient-fetch -q -O "$2" "$1"
-	elif command -v wget >/dev/null 2>&1; then wget -q -O "$2" "$1"
-	elif command -v curl >/dev/null 2>&1; then curl -fsSL -o "$2" "$1"
-	else return 1; fi
+	if command -v curl >/dev/null 2>&1; then
+		curl --http1.1 -fsSL --connect-timeout 10 --max-time 120 --retry 2 -o "$2" "$1" && return 0
+	fi
+	if command -v uclient-fetch >/dev/null 2>&1; then
+		uclient-fetch -q -O "$2" "$1" && return 0
+	fi
+	if command -v wget >/dev/null 2>&1; then
+		wget -q -O "$2" "$1" && return 0
+	fi
+	return 1
 }
 
 [ -f /etc/openwrt_release ] || die "这不是 OpenWrt 系统 / not OpenWrt"
