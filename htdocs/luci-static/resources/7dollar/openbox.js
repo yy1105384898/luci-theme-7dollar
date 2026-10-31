@@ -9,6 +9,7 @@
 const T = td.T, esc = td.esc;
 const CLI = '/opt/open-box/openwrt/bin/open-box';
 const UPDATE = '/opt/open-box/update.sh';
+const SITES = [['baidu', T('百度', 'Baidu'), '百'], ['google', 'Google', 'G'], ['openai', 'OpenAI', 'AI'], ['telegram', 'Telegram', '➤']];
 const CHANNELS = [['direct', T('GitHub 直连', 'GitHub direct')], ['https://ghfast.top', 'ghfast.top'], ['https://gh-proxy.com', 'gh-proxy.com'], ['https://gh.llkk.cc', 'gh.llkk.cc']];
 const initList = rpc.declare({ object: 'luci', method: 'getInitList', params: [ 'name' ], expect: { '': {} } });
 const initAction = rpc.declare({ object: 'luci', method: 'setInitAction', params: [ 'name', 'action' ], expect: { result: false } });
@@ -22,6 +23,22 @@ function newer(a, b) {
 	return false;
 }
 
+function parseProbe(result) {
+	const text = String(result.stdout || '').trim();
+	if (result.code !== 0) return { ok: false, reason: String(result.stderr || text || T('检测命令失败', 'Probe command failed')).slice(0, 180) };
+	// Current Open-Box prints "ok <ms>" or "fail <reason>", rather than JSON.
+	const line = text.split('\n').find(s => /^\s*(ok|fail)(\s|$)/.test(s));
+	if (line) {
+		const parts = line.trim().split(/\s+/), ms = Number(parts[1]);
+		return parts[0] === 'ok' ? { ok: true, ms: Number.isFinite(ms) && ms >= 0 ? ms : null } : { ok: false, reason: parts.slice(1).join(' ') || 'failed' };
+	}
+	try {
+		const data = JSON.parse(text.split('\n').find(s => s.trim().startsWith('{')) || '{}');
+		if (typeof data.ok === 'boolean') return { ok: data.ok, ms: data.ms != null && Number.isFinite(Number(data.ms)) && Number(data.ms) >= 0 ? Number(data.ms) : null, reason: String(data.reason || '') };
+	} catch (e) { /* Keep unknown output distinct from an unavailable channel. */ }
+	return { ok: false, reason: T('无法识别检测结果', 'Unrecognized probe response') };
+}
+
 function card() {
 	return `<section class="td-card k-proxy" data-card="ob">
 		<div class="td-card-h"><h3>Open-Box</h3><span class="td-chip mute" id="td-ob-status">${esc(T('读取中', 'Loading'))}</span></div>
@@ -29,10 +46,12 @@ function card() {
 		<div class="td-row"><div class="lb"><b>${esc(T('代理内核', 'Proxy core'))}</b></div><button type="button" class="td-switch" role="switch" aria-checked="false" aria-label="${esc(T('代理内核', 'Proxy core'))}" id="td-ob-power" disabled></button></div>
 		<div class="td-row"><div class="lb"><b>${esc(T('开机自启', 'Autostart'))}</b></div><button type="button" class="td-switch" role="switch" aria-checked="false" aria-label="${esc(T('开机自启', 'Autostart'))}" id="td-ob-enable" disabled></button></div>
 		<div class="td-ob-actions"><button type="button" class="btn" id="td-ob-restart" disabled>${esc(T('重启内核', 'Restart core'))}</button></div>
+		<div class="td-ob-net"><div class="td-ob-net-head"><span>${esc(T('网站连通性', 'Connectivity'))}</span><button type="button" class="td-ob-net-refresh" id="td-ob-net-refresh">${esc(T('检测', 'Test'))}</button></div>
+		<div class="td-ob-sites">${SITES.map(([id, name, icon]) => `<div class="td-ob-site" data-site="${id}"><span class="td-ob-site-icon" aria-hidden="true">${icon}</span><div class="td-ob-site-data"><span class="td-ob-site-name">${esc(name)}</span><span class="td-ob-site-result" role="status">—</span></div><div class="td-ob-site-bars" aria-hidden="true"></div></div>`).join('')}</div>
+		<small class="td-ob-net-note">${esc(T('Open-Box 分流 · HEAD 响应延迟 · 每分钟检测', 'Open-Box routing · HEAD latency · Every minute'))}</small></div>
 		<p class="td-muted td-ob-message" id="td-ob-message" role="status"></p>
 		<div class="td-ob-upgrade"><label for="td-ob-channel">${esc(T('升级渠道', 'Update channel'))}</label><select id="td-ob-channel">${CHANNELS.map(([value, label]) => `<option value="${esc(value)}">${esc(label)}</option>`).join('')}</select>
-		<div class="td-ob-actions"><button type="button" class="btn" id="td-ob-probe">${esc(T('检测渠道', 'Test channels'))}</button><button type="button" class="btn" id="td-ob-check">${esc(T('检查更新', 'Check updates'))}</button></div>
-		<button type="button" class="btn block" id="td-ob-update" disabled>${esc(T('立即升级', 'Upgrade now'))}</button></div>
+		<div class="td-ob-actions"><button type="button" class="btn" id="td-ob-probe">${esc(T('检测渠道', 'Test channels'))}</button><button type="button" class="btn" id="td-ob-check">${esc(T('检查更新', 'Check updates'))}</button></div></div>
 	</section>`;
 }
 
@@ -45,7 +64,6 @@ function attach(root) {
 	const controls = () => {
 		['power', 'enable', 'restart'].forEach(key => { get(key).disabled = busy || upgrading || !state; });
 		['probe', 'check', 'channel'].forEach(key => { get(key).disabled = busy || upgrading || probing || checking; });
-		get('update').disabled = busy || upgrading || probing || checking || !latest || latest === version;
 	};
 	const refresh = () => Promise.all([
 		serviceList('openbox'), initList('openbox'), td.readFile('/opt/open-box/meta.json')
@@ -123,16 +141,15 @@ function attach(root) {
 				const [value, label] = CHANNELS[i]; message(T('正在检测 ', 'Testing ') + label);
 				try {
 					const r = await fs.exec(UPDATE, ['--probe', value]);
-					const line = String(r.stdout || '').split('\n').find(s => s.trim().startsWith('{'));
-					const result = JSON.parse(line || '{}');
-					results[value] = { ok: r.code === 0 && result.ok === true, ms: Number(result.ms) || 0 };
-				} catch (e) { results[value] = { ok: false }; }
+					results[value] = parseProbe(r);
+				} catch (e) { results[value] = { ok: false, reason: e.message || String(e) }; }
 				const r = results[value];
-				get('channel').options[i].textContent = label + ' · ' + (r.ok ? T('可用 ', 'Available ') + r.ms + ' ms' : T('不可用', 'Unavailable'));
+				get('channel').options[i].textContent = label + ' · ' + (r.ok ? T('可用', 'Available') + (r.ms == null ? '' : ' ' + r.ms + ' ms') : T('不可用', 'Unavailable'));
+				get('channel').options[i].title = r.reason || '';
 			}
-			const reachable = CHANNELS.filter(([v]) => results[v] && results[v].ok).sort((a, b) => results[a[0]].ms - results[b[0]].ms);
+			const reachable = CHANNELS.filter(([v]) => results[v] && results[v].ok).sort((a, b) => (results[a[0]].ms ?? Infinity) - (results[b[0]].ms ?? Infinity));
 			if (reachable.length) get('channel').value = reachable[0][0];
-			message(reachable.length ? T('已选择最快可用渠道', 'Fastest available channel selected') : T('所有渠道均不可用，请稍后重试。', 'All channels unavailable. Try again later.'));
+			message(reachable.length ? T('已选择最快可用渠道', 'Fastest available channel selected') : T('未检测到可用渠道：', 'No available channel: ') + (results[get('channel').value].reason || T('请稍后重试', 'Try again later')));
 		} finally { probing = false; controls(); }
 	});
 	get('check').addEventListener('click', async () => {
@@ -143,7 +160,7 @@ function attach(root) {
 			const text = String(r.stdout || ''), match = /^latest=(v?[0-9][0-9A-Za-z._-]*)\s*$/m.exec(text);
 			if (r.code !== 0 || !match) throw new Error(T('无法检查更新，请检测升级渠道后重试。', 'Could not check updates. Test channels and retry.'));
 			if (/^status=latest\s*$/m.test(text) || !newer(match[1], version)) message(T('已是最新版本', 'Up to date'));
-			else { latest = match[1]; message(T('发现新版：', 'New version: ') + latest); }
+			else { latest = match[1]; message(T('发现新版：', 'New version: ') + latest); confirmUpdate(); }
 		} catch (e) { message(e.message || String(e)); }
 		finally { checking = false; controls(); }
 	});
@@ -179,8 +196,8 @@ function attach(root) {
 		} catch (e) { report(e.message || String(e)); }
 		finally { upgrading = false; await refresh(); }
 	};
-	get('update').addEventListener('click', () => {
-		if (get('update').disabled) return;
+	const confirmUpdate = () => {
+		if (!latest || busy || upgrading || probing) return;
 		const target = latest, channel = get('channel').value;
 		if (!CHANNELS.some(([value]) => value === channel)) return;
 		if (results[channel] && !results[channel].ok) { message(T('所选渠道不可用，请切换渠道。', 'Selected channel unavailable. Choose another.')); return; }
@@ -190,10 +207,59 @@ function attach(root) {
 			E('p', {}, CHANNELS.find(([value]) => value === channel)[1]),
 			E('div', { 'class': 'right' }, [E('button', { 'class': 'btn', 'click': () => ui.hideModal() }, T('取消', 'Cancel')), E('button', { 'class': 'btn primary', 'click': () => update(target, channel) }, T('立即升级', 'Upgrade now'))])
 		]);
-	});
+	};
 	const tick = () => !root.isConnected ? Promise.resolve() : refresh();
 	poll.add(tick, 10);
+	attachConnectivity(root);
 	return refresh();
+}
+
+function attachConnectivity(root) {
+	const button = root.querySelector('#td-ob-net-refresh');
+	const history = Object.fromEntries(SITES.map(([id]) => [id, []]));
+	let testing = false;
+	const labels = {
+		ok: T('可用', 'Available'), restricted: T('访问受限', 'Restricted'), timeout: T('超时', 'Timeout'),
+		failed: T('连接失败', 'Failed'), http_error: T('响应异常', 'HTTP error'),
+		unavailable: T('内核未就绪', 'Core unavailable'), missing_runtime: T('缺少 Node 运行时', 'Node runtime missing')
+	};
+	const test = async () => {
+		if (!root.isConnected) { poll.remove(test); return; }
+		if (testing || document.hidden) return;
+		testing = true; button.disabled = true; button.textContent = T('检测中…', 'Testing…');
+		try {
+			await Promise.all(SITES.map(async ([id]) => {
+				const tile = root.querySelector('[data-site="' + id + '"]');
+				let result;
+				try {
+					const r = await fs.exec('/bin/sh', ['/usr/share/7dollar/connectivity.sh', id]);
+					if (r.code !== 0) throw new Error('Probe failed');
+					result = JSON.parse(r.stdout || '{}');
+					if (!Object.prototype.hasOwnProperty.call(labels, result.status)) throw new Error('Invalid result');
+				} catch (e) { result = { status: 'failed' }; }
+				if (!root.isConnected) return;
+				const ok = result.status === 'ok' && Number.isFinite(result.ms) && result.ms >= 0;
+				const tone = ok ? (result.ms < 500 ? 'good' : 'slow') : result.status === 'restricted' ? 'slow' : 'bad';
+				tile.dataset.state = tone;
+				const value = tile.querySelector('.td-ob-site-result');
+				value.textContent = ok ? result.ms + ' ms' : labels[result.status];
+				const when = new Date().toLocaleTimeString();
+				tile.title = labels[result.status] + (result.http ? ' · HTTP ' + result.http : '') + ' · ' + when;
+				const samples = history[id];
+				samples.push({ tone: tone, ms: ok ? result.ms : null });
+				if (samples.length > 18) samples.shift();
+				const scale = Math.max(300, ...samples.map(s => s.ms || 0));
+				tile.querySelector('.td-ob-site-bars').innerHTML = samples.map(s => `<i class="${s.tone}" style="height:${s.ms == null ? 100 : Math.max(12, Math.round(s.ms / scale * 100))}%"></i>`).join('');
+			}));
+		} finally { testing = false; button.disabled = false; button.textContent = T('重新检测', 'Retest'); }
+	};
+	button.addEventListener('click', test);
+	// LuCI attaches the returned view after render(), so wait for the card to enter the DOM.
+	window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+		if (!root.isConnected) return;
+		poll.add(test, 60);
+		test();
+	}));
 }
 
 return baseclass.extend({ card: card, attach: attach });
