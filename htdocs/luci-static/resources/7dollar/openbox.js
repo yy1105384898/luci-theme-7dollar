@@ -46,8 +46,8 @@ function card() {
 		<div class="td-row"><div class="lb"><b>${esc(T('代理内核', 'Proxy core'))}</b></div><button type="button" class="td-switch" role="switch" aria-checked="false" aria-label="${esc(T('代理内核', 'Proxy core'))}" id="td-ob-power" disabled></button></div>
 		<div class="td-row"><div class="lb"><b>${esc(T('开机自启', 'Autostart'))}</b></div><button type="button" class="td-switch" role="switch" aria-checked="false" aria-label="${esc(T('开机自启', 'Autostart'))}" id="td-ob-enable" disabled></button></div>
 		<div class="td-ob-actions"><button type="button" class="btn" id="td-ob-restart" disabled>${esc(T('重启内核', 'Restart core'))}</button></div>
-		<div class="td-ob-net"><div class="td-ob-net-head"><span>${esc(T('网站连通性', 'Connectivity'))}</span><button type="button" class="td-ob-net-refresh" id="td-ob-net-refresh">${esc(T('检测', 'Test'))}</button></div>
-		<div class="td-ob-sites">${SITES.map(([id, name, icon]) => `<div class="td-ob-site" data-site="${id}"><span class="td-ob-site-icon" aria-hidden="true">${icon}</span><div class="td-ob-site-data"><span class="td-ob-site-name">${esc(name)}</span><span class="td-ob-site-result" role="status">—</span></div><div class="td-ob-site-bars" aria-hidden="true"></div></div>`).join('')}</div>
+		<div class="td-ob-net"><div class="td-ob-net-head"><span class="td-ob-auto-label"><span id="td-ob-auto-label">${esc(T('打开首页自动测速', 'Test automatically on home'))}</span><button type="button" class="td-switch td-ob-auto" role="switch" aria-checked="false" aria-labelledby="td-ob-auto-label" id="td-ob-auto"></button></span><button type="button" class="td-ob-net-refresh" id="td-ob-net-refresh" aria-label="${esc(T('重新检测全部站点', 'Retest all sites'))}" title="${esc(T('重新检测全部站点', 'Retest all sites'))}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="m13 2-9 12h7l-1 8 10-12h-7z"/></svg></button></div>
+		<div class="td-ob-sites">${SITES.map(([id, name, icon]) => `<button type="button" class="td-ob-site" data-site="${id}" aria-label="${esc(name + T('：重新检测全部站点', ': retest all sites'))}"><span class="td-ob-site-icon" aria-hidden="true">${icon}</span><span class="td-ob-site-data"><span class="td-ob-site-name">${esc(name)}</span><span class="td-ob-site-result" role="status">—</span></span><span class="td-ob-site-bars" aria-hidden="true"></span></button>`).join('')}</div>
 		<small class="td-ob-net-note">${esc(T('Open-Box 分流 · HEAD 响应延迟 · 每分钟检测', 'Open-Box routing · HEAD latency · Every minute'))}</small></div>
 		<p class="td-muted td-ob-message" id="td-ob-message" role="status"></p>
 		<div class="td-ob-upgrade"><label for="td-ob-channel">${esc(T('升级渠道', 'Update channel'))}</label><select id="td-ob-channel">${CHANNELS.map(([value, label]) => `<option value="${esc(value)}">${esc(label)}</option>`).join('')}</select>
@@ -216,17 +216,25 @@ function attach(root) {
 
 function attachConnectivity(root) {
 	const button = root.querySelector('#td-ob-net-refresh');
+	const autoSwitch = root.querySelector('#td-ob-auto');
+	const storageKey = '7dollar.openbox.autoTest';
 	const history = Object.fromEntries(SITES.map(([id]) => [id, []]));
-	let testing = false;
+	let testing = false, autoTest = true;
+	try { autoTest = window.localStorage.getItem(storageKey) !== '0'; } catch (e) { /* Storage may be disabled. */ }
+	const paintAuto = () => { autoSwitch.classList.toggle('on', autoTest); autoSwitch.setAttribute('aria-checked', String(autoTest)); };
+	paintAuto();
+	const tiles = SITES.map(([id]) => root.querySelector('[data-site="' + id + '"]'));
 	const labels = {
 		ok: T('可用', 'Available'), restricted: T('访问受限', 'Restricted'), timeout: T('超时', 'Timeout'),
 		failed: T('连接失败', 'Failed'), http_error: T('响应异常', 'HTTP error'),
 		unavailable: T('内核未就绪', 'Core unavailable'), missing_runtime: T('缺少 Node 运行时', 'Node runtime missing')
 	};
-	const test = async () => {
+	const test = async (manual = false) => {
 		if (!root.isConnected) { poll.remove(test); return; }
-		if (testing || document.hidden) return;
-		testing = true; button.disabled = true; button.textContent = T('检测中…', 'Testing…');
+		if (testing || document.hidden || (!manual && !autoTest)) return;
+		testing = true; button.disabled = true; button.classList.add('testing');
+		button.setAttribute('aria-busy', 'true');
+		tiles.forEach(tile => { tile.disabled = true; });
 		try {
 			await Promise.all(SITES.map(async ([id]) => {
 				const tile = root.querySelector('[data-site="' + id + '"]');
@@ -251,9 +259,20 @@ function attachConnectivity(root) {
 				const scale = Math.max(300, ...samples.map(s => s.ms || 0));
 				tile.querySelector('.td-ob-site-bars').innerHTML = samples.map(s => `<i class="${s.tone}" style="height:${s.ms == null ? 100 : Math.max(12, Math.round(s.ms / scale * 100))}%"></i>`).join('');
 			}));
-		} finally { testing = false; button.disabled = false; button.textContent = T('重新检测', 'Retest'); }
+		} finally {
+			testing = false; button.disabled = false; button.classList.remove('testing');
+			button.setAttribute('aria-busy', 'false');
+			tiles.forEach(tile => { tile.disabled = false; });
+		}
 	};
-	button.addEventListener('click', test);
+	button.addEventListener('click', () => test(true));
+	tiles.forEach(tile => tile.addEventListener('click', () => test(true)));
+	autoSwitch.addEventListener('click', () => {
+		autoTest = !autoTest;
+		try { window.localStorage.setItem(storageKey, autoTest ? '1' : '0'); } catch (e) { /* Keep the setting for this visit. */ }
+		paintAuto();
+		if (autoTest) test();
+	});
 	// LuCI attaches the returned view after render(), so wait for the card to enter the DOM.
 	window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
 		if (!root.isConnected) return;
