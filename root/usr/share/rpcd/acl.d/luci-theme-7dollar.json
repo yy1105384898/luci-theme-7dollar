@@ -3,6 +3,7 @@
 		"description": "Grant access to the 7Dollar theme dashboard and appearance settings",
 		"read": {
 			"ubus": {
+				"luci": [ "getInitList" ],
 				"luci-rpc": [ "getDHCPLeases", "getHostHints", "getWirelessDevices" ],
 				"iwinfo": [ "assoclist" ],
 				"network.interface": [ "dump" ],
@@ -19,15 +20,27 @@
 				"/sys/class/thermal/thermal_zone0/temp": [ "read" ],
 				"/sys/module/mt7915e/parameters/wed_enable": [ "read" ],
 				"/bin/ping": [ "exec" ],
-				"/usr/sbin/nlbw -c json -g mac -o mac": [ "exec" ]
+				"/usr/sbin/nlbw -c json -g mac -o mac": [ "exec" ],
+				"/opt/open-box/meta.json": [ "read" ],
+				"/opt/open-box/openwrt/bin/open-box check": [ "exec" ],
+				"/opt/open-box/openwrt/bin/open-box start --status": [ "exec" ],
+				"/opt/open-box/update.sh --probe *": [ "exec" ],
+				"/tmp/openbox-update.status": [ "read" ]
 			},
 			"uci": [ "7dollar", "firewall", "luci", "openclash" ]
 		},
 		"write": {
 			"ubus": {
+				"luci": [ "setInitAction" ],
+				"file": [ "exec" ],
 				"uci": [ "add", "set", "delete", "commit" ]
 			},
-			"uci": [ "7dollar", "luci" ]
+			"uci": [ "7dollar", "luci" ],
+			"file": {
+				"/opt/open-box/openwrt/bin/open-box start --detach": [ "exec" ],
+				"/opt/open-box/update.sh --detach --direct --expect *": [ "exec" ],
+				"/opt/open-box/update.sh --detach --mirror * --expect *": [ "exec" ]
+			}
 		}
 	}
 }
