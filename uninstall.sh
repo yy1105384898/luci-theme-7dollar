@@ -1,6 +1,7 @@
 #!/bin/sh
 # Remove 7Dollar and switch LuCI back to Bootstrap.
-#   wget -qO- https://raw.githubusercontent.com/itsmaiGe/luci-theme-7dollar/main/uninstall.sh | sh
+# Fork: https://github.com/yy1105384898/luci-theme-7dollar
+#   wget -qO- https://raw.githubusercontent.com/yy1105384898/luci-theme-7dollar/main/uninstall.sh | sh
 
 if command -v opkg >/dev/null 2>&1 && opkg status luci-theme-7dollar | grep -q '^Status: .* installed'; then
 	opkg remove luci-theme-7dollar
