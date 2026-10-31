@@ -8,12 +8,12 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-theme-7dollar
 PKG_VERSION:=1.0.2
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
 LUCI_TITLE:=7Dollar — an elegant, lightweight LuCI theme
 LUCI_DESCRIPTION:=A calm, card based LuCI theme with five palettes, light/dark mode, \
 	a friendly home dashboard and grouped navigation. Built for OpenWrt 23.05+ (ucode LuCI).
-LUCI_DEPENDS:=+luci-base
+LUCI_DEPENDS:=+luci-base +nlbwmon
 LUCI_PKGARCH:=all
 
 PKG_LICENSE:=Apache-2.0
