@@ -1,0 +1,12 @@
+.td-traffic-note{font-size:12px;margin:0 0 12px}
+.td-traffic{max-height:320px;overflow:auto;scrollbar-width:thin;padding-right:4px}
+.td-traffic-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:10px 0;border-top:1px solid var(--line-soft)}
+.td-traffic-row:first-child{border-top:0;padding-top:0}
+.td-traffic-name{min-width:0}
+.td-traffic-name b,.td-traffic-name small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.td-traffic-name b{font-size:13px;font-weight:500}
+.td-traffic-name small{font-size:11px;color:var(--ink-3)}
+.td-traffic-values{display:flex;flex-direction:column;align-items:flex-end;font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.td-traffic-values span:first-child{color:var(--accent)}
+.td-traffic-values span:last-child{color:var(--second)}
+.td-traffic-row .td-bar{grid-column:1/-1;margin-top:0}
