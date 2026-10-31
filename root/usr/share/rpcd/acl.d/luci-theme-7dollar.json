@@ -25,7 +25,11 @@
 				"/opt/open-box/openwrt/bin/open-box check": [ "exec" ],
 				"/opt/open-box/openwrt/bin/open-box start --status": [ "exec" ],
 				"/opt/open-box/update.sh --probe *": [ "exec" ],
-				"/tmp/openbox-update.status": [ "read" ]
+				"/tmp/openbox-update.status": [ "read" ],
+				"/bin/sh /usr/share/7dollar/connectivity.sh baidu": [ "exec" ],
+				"/bin/sh /usr/share/7dollar/connectivity.sh google": [ "exec" ],
+				"/bin/sh /usr/share/7dollar/connectivity.sh openai": [ "exec" ],
+				"/bin/sh /usr/share/7dollar/connectivity.sh telegram": [ "exec" ]
 			},
 			"uci": [ "7dollar", "firewall", "luci", "openclash" ]
 		},
