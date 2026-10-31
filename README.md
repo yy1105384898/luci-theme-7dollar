@@ -62,7 +62,7 @@
 
 ### 方法一：网页上传（推荐，不用命令行）
 
-1. 下载安装包：[luci-theme-7dollar_1.0.2-r1_all.ipk](https://github.com/itsmaiGe/luci-theme-7dollar/raw/main/dist/luci-theme-7dollar_1.0.2-r1_all.ipk)
+1. 从本仓库下载安装包：[dist 安装包目录](https://github.com/yy1105384898/luci-theme-7dollar/tree/main/dist)
 2. 浏览器打开路由器后台（通常是 `192.168.1.1`），输入密码登录
 3. 点 **系统 → 软件包 → 上传软件包…**，选择刚下载的文件，点 **上传**，再点 **安装**
 4. 刷新页面（Windows 按 <kbd>F5</kbd>，Mac 按 <kbd>⌘ R</kbd>）
@@ -85,7 +85,7 @@
 3. 粘贴下面这行并回车，看到「完成」后刷新浏览器：
 
    ```sh
-   wget -qO- https://raw.githubusercontent.com/itsmaiGe/luci-theme-7dollar/main/install.sh | sh
+   wget -qO- https://raw.githubusercontent.com/yy1105384898/luci-theme-7dollar/main/install.sh | sh
    ```
 
 <details>
@@ -95,10 +95,10 @@
 
 国内访问 GitHub 不稳定时，建议用方法一：先在电脑上下载安装包再上传。
 
-或者使用 GitHub 加速代理（替换 `<代理地址>`）：
+或者使用 GitHub 加速代理：
 
 ```sh
-wget -qO- <代理地址>/https://raw.githubusercontent.com/itsmaiGe/luci-theme-7dollar/main/install.sh | PROXY=<代理地址>/ sh
+wget -qO- https://gh-proxy.com/https://raw.githubusercontent.com/yy1105384898/luci-theme-7dollar/main/install.sh | PROXY=https://gh-proxy.com/ sh
 ```
 </details>
 
@@ -110,7 +110,7 @@ wget -qO- <代理地址>/https://raw.githubusercontent.com/itsmaiGe/luci-theme-7
 在 OpenWrt 源码或 SDK 中：
 
 ```sh
-git clone https://github.com/itsmaiGe/luci-theme-7dollar.git feeds/luci/themes/luci-theme-7dollar
+git clone https://github.com/yy1105384898/luci-theme-7dollar.git feeds/luci/themes/luci-theme-7dollar
 ./scripts/feeds update -i && ./scripts/feeds install luci-theme-7dollar
 make menuconfig   # LuCI → Themes → luci-theme-7dollar
 make package/luci-theme-7dollar/compile V=s
@@ -139,7 +139,7 @@ make package/luci-theme-7dollar/compile V=s
 - **命令卸载**：
 
   ```sh
-  wget -qO- https://raw.githubusercontent.com/itsmaiGe/luci-theme-7dollar/main/uninstall.sh | sh
+  wget -qO- https://raw.githubusercontent.com/yy1105384898/luci-theme-7dollar/main/uninstall.sh | sh
   ```
 
 <details>
@@ -191,10 +191,10 @@ install.sh / uninstall.sh        安装 / 卸载脚本
 - Native LuCI pages restyled, icons included
 - Responsive and zoom-friendly; no external fonts or requests; 44 KB package
 
-**Install**: upload [the ipk](https://github.com/itsmaiGe/luci-theme-7dollar/raw/main/dist/luci-theme-7dollar_1.0.2-r1_all.ipk) via *System → Software → Upload Package*, or run over SSH:
+**Install**: download an IPK from [this repository's dist directory](https://github.com/yy1105384898/luci-theme-7dollar/tree/main/dist) and upload it via *System → Software → Upload Package*, or run over SSH:
 
 ```sh
-wget -qO- https://raw.githubusercontent.com/itsmaiGe/luci-theme-7dollar/main/install.sh | sh
+wget -qO- https://raw.githubusercontent.com/yy1105384898/luci-theme-7dollar/main/install.sh | sh
 ```
 
 **Uninstall**: `opkg remove luci-theme-7dollar` or the `uninstall.sh` one-liner.
