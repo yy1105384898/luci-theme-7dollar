@@ -1,15 +1,45 @@
-.td-traffic-note{font-size:12px;margin:0 0 12px}
-.td-traffic{max-height:320px;overflow:auto;scrollbar-width:thin;padding-right:4px}
-.td-traffic-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:10px 0;border-top:1px solid var(--line-soft)}
+/* Device cards share the plugin row height; lists scroll within the card. */
+.td-grid>.k-dev,.td-grid>.k-wifi{display:flex;flex-direction:column;min-height:0}
+.td-device-summary,.td-traffic-summary{display:grid;gap:8px;margin-bottom:16px;padding:12px 0;border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft)}
+.td-device-summary{grid-template-columns:repeat(3,minmax(0,1fr))}
+.td-device-summary>div,.td-traffic-summary>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.td-device-summary b{font-size:22px;line-height:1.15;font-weight:500;font-variant-numeric:tabular-nums}
+.td-device-summary span,.td-traffic-summary span{font-size:11px;color:var(--ink-3)}
+.k-dev #td-devs{overflow:auto;scrollbar-width:thin;max-height:440px;padding-right:4px}
+.k-dev .td-dev{padding:13px 0;gap:10px}
+.k-dev .td-dev:first-child{padding-top:0}
+.k-dev .td-dev .nm b{font-size:13px}
+.k-dev .td-dev .nm small{font-size:11px;margin-top:3px;font-variant-numeric:tabular-nums}
+.k-dev .td-dev .rt{width:auto;max-width:80px;font-size:11px}
+.td-device-status{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;color:var(--ink-3)}
+.td-device-status i{width:5px;height:5px;border-radius:50%;background:#66b88b;flex:none}
+.td-device-footer{display:flex;align-items:center;justify-content:center;gap:4px;border-top:1px solid var(--line-soft);padding-top:12px;margin-top:14px;font-size:11px;color:var(--ink-3)!important;text-decoration:none!important;flex-shrink:0}
+.td-device-footer svg{width:12px;height:12px}
+.td-traffic-note{font-size:11px;margin:0 0 10px}
+.td-traffic-summary{grid-template-columns:repeat(2,minmax(0,1fr));padding-top:0;border-top:0}
+.td-traffic-summary b{font-size:17px;font-weight:500;white-space:nowrap;font-variant-numeric:tabular-nums}
+.td-traffic-summary .down{color:var(--accent)}
+.td-traffic-summary .up{color:var(--second)}
+.td-traffic{max-height:440px;overflow:auto;scrollbar-width:thin;padding-right:4px}
+.td-traffic-row{display:grid;grid-template-columns:22px minmax(0,1fr);gap:6px 8px;padding:13px 0;border-top:1px solid var(--line-soft)}
 .td-traffic-row:first-child{border-top:0;padding-top:0}
+.td-traffic-rank{font-size:10px;color:var(--ink-3);padding-top:2px;font-variant-numeric:tabular-nums}
+.td-traffic-row:nth-child(-n+3) .td-traffic-rank{color:var(--accent)}
 .td-traffic-name{min-width:0}
 .td-traffic-name b,.td-traffic-name small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .td-traffic-name b{font-size:13px;font-weight:500}
-.td-traffic-name small{font-size:11px;color:var(--ink-3)}
-.td-traffic-values{display:flex;flex-direction:column;align-items:flex-end;font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.td-traffic-name small{font-size:11px;color:var(--ink-3);margin-top:3px;font-variant-numeric:tabular-nums}
+.td-traffic-values{grid-column:2;display:flex;justify-content:space-between;gap:8px;font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums}
 .td-traffic-values span:first-child{color:var(--accent)}
 .td-traffic-values span:last-child{color:var(--second)}
-.td-traffic-row .td-bar{grid-column:1/-1;margin-top:0}
+.td-traffic-meter{grid-column:2;display:flex;height:3px;overflow:hidden;border-radius:3px;background:var(--line-soft)}
+.td-traffic-meter i{display:block;height:100%}
+.td-traffic-meter .down{background:var(--accent)}
+.td-traffic-meter .up{background:var(--second)}
+@container main (min-width:980px){
+  .td-grid.has-oc>.k-dev,.td-grid.has-oc>.k-wifi{grid-column:span 4}
+  .td-grid.has-oc>.k-dev #td-devs,.td-grid.has-oc>.k-wifi .td-traffic{height:0;min-height:360px;max-height:none;flex:1 1 auto}
+}
 .td-ob-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 .td-grid>.td-card[data-card="ob"]{display:flex;flex-direction:column;align-self:stretch}
 .td-ob-actions .btn{flex:1;min-width:100px}
