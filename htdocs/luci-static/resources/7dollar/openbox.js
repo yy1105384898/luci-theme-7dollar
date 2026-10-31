@@ -218,7 +218,9 @@ function attachConnectivity(root) {
 	const button = root.querySelector('#td-ob-net-refresh');
 	const autoSwitch = root.querySelector('#td-ob-auto');
 	const storageKey = '7dollar.openbox.autoTest';
+	const cacheKey = '7dollar.openbox.latency.v1';
 	const history = Object.fromEntries(SITES.map(([id]) => [id, []]));
+	const saved = {};
 	let testing = false, autoTest = true;
 	try { autoTest = window.localStorage.getItem(storageKey) !== '0'; } catch (e) { /* Storage may be disabled. */ }
 	const paintAuto = () => { autoSwitch.classList.toggle('on', autoTest); autoSwitch.setAttribute('aria-checked', String(autoTest)); };
@@ -229,6 +231,32 @@ function attachConnectivity(root) {
 		failed: T('连接失败', 'Failed'), http_error: T('响应异常', 'HTTP error'),
 		unavailable: T('内核未就绪', 'Core unavailable'), missing_runtime: T('缺少 Node 运行时', 'Node runtime missing')
 	};
+	const valid = result => result && Object.prototype.hasOwnProperty.call(labels, result.status) && (result.status !== 'ok' || (Number.isFinite(result.ms) && result.ms >= 0 && result.ms <= 60000));
+	const paint = id => {
+		const entry = saved[id], result = entry.result, tile = root.querySelector('[data-site="' + id + '"]');
+		const ok = result.status === 'ok';
+		tile.dataset.state = ok ? (result.ms < 500 ? 'good' : 'slow') : result.status === 'restricted' ? 'slow' : 'bad';
+		const value = tile.querySelector('.td-ob-site-result');
+		value.innerHTML = ok ? result.ms + ' ms' + (entry.error ? ` <small style="font-size:9px;font-weight:400">${esc(T('上次', 'prev'))}</small>` : '') : esc(labels[result.status]);
+		const time = new Date(entry.time).toLocaleString();
+		tile.title = (entry.error ? labels[entry.error] + T('，保留上次结果 · ', '; previous result retained · ') : '') + labels[result.status] + (result.http ? ' · HTTP ' + result.http : '') + ' · ' + time;
+		const samples = history[id], scale = Math.max(300, ...samples.map(s => s.ms || 0));
+		tile.querySelector('.td-ob-site-bars').innerHTML = samples.map(s => `<i class="${s.tone}" style="height:${s.ms == null ? 100 : Math.max(12, Math.round(s.ms / scale * 100))}%"></i>`).join('');
+	};
+	const persist = () => {
+		try { window.localStorage.setItem(cacheKey, JSON.stringify({ sites: saved, history: history })); } catch (e) { /* The current results remain visible if storage is unavailable. */ }
+	};
+	try {
+		const cache = JSON.parse(window.localStorage.getItem(cacheKey) || '{}');
+		for (const [id] of SITES) {
+			const entry = (cache.sites || {})[id];
+			if (!entry || !valid(entry.result) || !Number.isFinite(entry.time) || entry.time <= 0) continue;
+			saved[id] = { result: { status: entry.result.status, ms: entry.result.ms, http: Number.isInteger(entry.result.http) ? entry.result.http : 0 }, time: entry.time, error: Object.prototype.hasOwnProperty.call(labels, entry.error) ? entry.error : '' };
+			const samples = (cache.history || {})[id];
+			if (Array.isArray(samples)) history[id] = samples.filter(s => s && ['good', 'slow', 'bad'].includes(s.tone) && (s.ms === null || (Number.isFinite(s.ms) && s.ms >= 0 && s.ms <= 60000))).slice(-18).map(s => ({ tone: s.tone, ms: s.ms }));
+			paint(id);
+		}
+	} catch (e) { /* Ignore a malformed cache and perform a fresh measurement. */ }
 	const test = async (manual = false) => {
 		if (!root.isConnected) { poll.remove(test); return; }
 		if (testing || document.hidden || (!manual && !autoTest)) return;
@@ -237,27 +265,24 @@ function attachConnectivity(root) {
 		tiles.forEach(tile => { tile.disabled = true; });
 		try {
 			await Promise.all(SITES.map(async ([id]) => {
-				const tile = root.querySelector('[data-site="' + id + '"]');
 				let result;
 				try {
 					const r = await fs.exec('/bin/sh', ['/usr/share/7dollar/connectivity.sh', id]);
 					if (r.code !== 0) throw new Error('Probe failed');
 					result = JSON.parse(r.stdout || '{}');
-					if (!Object.prototype.hasOwnProperty.call(labels, result.status)) throw new Error('Invalid result');
+					if (!valid(result)) throw new Error('Invalid result');
 				} catch (e) { result = { status: 'failed' }; }
 				if (!root.isConnected) return;
 				const ok = result.status === 'ok' && Number.isFinite(result.ms) && result.ms >= 0;
+				if (!ok && saved[id] && saved[id].result.status === 'ok') {
+					saved[id].error = result.status; paint(id); persist(); return;
+				}
 				const tone = ok ? (result.ms < 500 ? 'good' : 'slow') : result.status === 'restricted' ? 'slow' : 'bad';
-				tile.dataset.state = tone;
-				const value = tile.querySelector('.td-ob-site-result');
-				value.textContent = ok ? result.ms + ' ms' : labels[result.status];
-				const when = new Date().toLocaleTimeString();
-				tile.title = labels[result.status] + (result.http ? ' · HTTP ' + result.http : '') + ' · ' + when;
 				const samples = history[id];
 				samples.push({ tone: tone, ms: ok ? result.ms : null });
 				if (samples.length > 18) samples.shift();
-				const scale = Math.max(300, ...samples.map(s => s.ms || 0));
-				tile.querySelector('.td-ob-site-bars').innerHTML = samples.map(s => `<i class="${s.tone}" style="height:${s.ms == null ? 100 : Math.max(12, Math.round(s.ms / scale * 100))}%"></i>`).join('');
+				saved[id] = { result: result, time: Date.now(), error: '' };
+				paint(id); persist();
 			}));
 		} finally {
 			testing = false; button.disabled = false; button.classList.remove('testing');
