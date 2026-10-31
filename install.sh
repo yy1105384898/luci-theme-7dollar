@@ -1,10 +1,10 @@
 #!/bin/sh
 # 7Dollar — one line installer for OpenWrt
-#   wget -qO- https://raw.githubusercontent.com/itsmaiGe/luci-theme-7dollar/main/install.sh | sh
+#   wget -qO- https://raw.githubusercontent.com/yy1105384898/luci-theme-7dollar/main/install.sh | sh
 # Behind the GFW? put a GitHub proxy in front:
-#   wget -qO- https://<proxy>/https://raw.githubusercontent.com/itsmaiGe/luci-theme-7dollar/main/install.sh | PROXY=https://<proxy>/ sh
+#   wget -qO- https://<proxy>/https://raw.githubusercontent.com/yy1105384898/luci-theme-7dollar/main/install.sh | PROXY=https://<proxy>/ sh
 
-REPO=itsmaiGe/luci-theme-7dollar
+REPO=yy1105384898/luci-theme-7dollar
 BRANCH=${BRANCH:-main}
 P=${PROXY:-}
 RAW="${P}https://raw.githubusercontent.com/$REPO/$BRANCH"
@@ -34,6 +34,9 @@ if command -v opkg >/dev/null 2>&1; then
 	opkg install --force-reinstall "$TMP/$IPK" || die "opkg 安装失败"
 else
 	# apk based releases (OpenWrt 25.x): copy the files directly
+	if ! command -v nlbw >/dev/null 2>&1; then
+		apk add nlbwmon || die "nlbwmon install failed"
+	fi
 	say "未检测到 opkg，改用文件方式安装"
 	get "$TGZ" "$TMP/src.tgz" || die "下载失败，请检查网络，或设置 PROXY 后重试"
 	tar -xzf "$TMP/src.tgz" -C "$TMP" || die "解压失败"
@@ -48,6 +51,9 @@ else
 	( cd /etc/uci-defaults && . ./30_luci-theme-7dollar ) && rm /etc/uci-defaults/30_luci-theme-7dollar
 	/etc/init.d/rpcd reload >/dev/null 2>&1
 fi
+
+/etc/init.d/nlbwmon enable
+/etc/init.d/nlbwmon start
 
 rm -rf "$TMP" /tmp/luci-indexcache* /tmp/luci-modulecache/
 say "完成！刷新浏览器里的路由器后台即可看到 7Dollar。"
