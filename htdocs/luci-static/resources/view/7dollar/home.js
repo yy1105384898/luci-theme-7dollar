@@ -76,11 +76,15 @@ return view.extend({
 					</div><svg class="td-chart" id="td-chart" viewBox="0 0 600 118" preserveAspectRatio="none" aria-hidden="true"></svg>`)}
 				${card('dev', 'k-dev td-full-md', `
 					<div class="td-card-h"><h3>${esc(T('在线设备', 'Online devices'))}</h3><a href="${L.url('admin/clients')}">${esc(T('全部', 'All'))}${icon('chev')}</a></div>
-					<div id="td-devs"><div class="td-empty-row">${esc(T('正在读取…', 'Loading…'))}</div></div>`)}
+					<div id="td-device-summary" class="td-device-summary"></div>
+					<div id="td-devs" tabindex="0" role="region" aria-label="${esc(T('在线设备列表', 'Online device list'))}"><div class="td-empty-row">${esc(T('正在读取…', 'Loading…'))}</div></div>
+					<a class="td-device-footer" href="${L.url('admin/clients')}">${esc(T('打开设备管理', 'Manage devices'))}${icon('chev')}</a>`)}
 				${card('wifi', 'k-wifi', `
 					<div class="td-card-h"><h3>${esc(T('设备流量', 'Device traffic'))}</h3><a href="${L.url('admin/clients')}">${esc(T('设备', 'Devices'))}${icon('chev')}</a></div>
 					<p class="td-muted td-traffic-note">${esc(T('当前统计周期 · 按总流量排序', 'Current accounting period · sorted by total'))}</p>
-					<div id="td-traffic" class="td-traffic" tabindex="0" role="region" aria-label="${esc(T('各设备流量统计', 'Traffic by device'))}"><div class="td-empty-row">${esc(T('正在读取…', 'Loading…'))}</div></div>`)}
+					<div id="td-traffic-summary" class="td-traffic-summary"></div>
+					<div id="td-traffic" class="td-traffic" tabindex="0" role="region" aria-label="${esc(T('各设备流量统计', 'Traffic by device'))}"><div class="td-empty-row">${esc(T('正在读取…', 'Loading…'))}</div></div>
+					<div id="td-traffic-footer" class="td-device-footer td-muted"></div>`)}
 				${showOB ? ob.card() : ''}
 				${showOC ? `<section class="td-card k-proxy" data-card="oc">
 					<div class="td-card-h"><h3>OpenClash</h3><span class="td-chip mute" id="td-oc-chip"><span class="td-dot"></span>${esc(T('读取中', 'Loading'))}</span></div>
@@ -148,13 +152,14 @@ return view.extend({
 			this.set('td-ndev', online.length + ' ' + T('台设备', online.length == 1 ? 'device' : 'devices'));
 			this.set('td-ndev-s', online.length ? T('正在上网', 'online') : T('暂无设备', 'none yet')); this.paintSummary();
 			const box = this.$('td-devs'); if (!box) return;
-			const top = online.slice(0, 5);
-			box.innerHTML = top.length ? top.map(c => {
+			const wireless = online.filter(c => c.conn == 'wifi').length;
+			this.$('td-device-summary').innerHTML = [[online.length, T('在线', 'Online')], [online.length - wireless, T('有线', 'Wired')], [wireless, T('无线', 'Wireless')]].map(([n, label]) => `<div><b>${n}</b><span>${esc(label)}</span></div>`).join('');
+			box.innerHTML = online.length ? online.map(c => {
 				const [ sig ] = td.signal(c.signal);
-				const sub = c.conn == 'wifi' ? `Wi‑Fi ${td.bandName(c.band)} · ${sig}` : T('有线连接', 'Wired') + (c.ip ? ' · ' + c.ip : '');
-				const rt = c.conn == 'wifi' && c.link ? `${Math.round(c.link)} Mbps<div class="td-bar"><i style="width:${td.quality(c.signal)}%"></i></div>` : `${esc(T('有线', 'Wired'))}<div class="td-bar"><i style="width:100%"></i></div>`;
-				return `<div class="td-dev"><div class="td-av">${icon(c.kind)}</div><div class="nm"><b>${esc(c.display)}</b><small>${esc(sub)}</small></div><div class="rt" title="${esc(T('连接速率 · 信号强度', 'Link rate · signal'))}">${rt}</div></div>`;
-			}).join('') + (online.length > 5 ? `<a class="td-more" href="${L.url('admin/clients')}">${esc(T(`还有 ${online.length - 5} 台设备`, `${online.length - 5} more`))}</a>` : '') : `<div class="td-empty-row">${esc(T('现在没有设备在线', 'No devices online'))}</div>`;
+				const sub = c.conn == 'wifi' ? `Wi‑Fi ${td.bandName(c.band)} · ${sig}` : c.display === c.ip ? c.mac || T('有线连接', 'Wired') : c.ip || c.mac || T('有线连接', 'Wired');
+				const rt = c.conn == 'wifi' && c.link ? `${Math.round(c.link)} Mbps<div class="td-bar"><i style="width:${td.quality(c.signal)}%"></i></div>` : `<span class="td-device-status"><i></i>${esc(T('有线', 'Wired'))}</span>`;
+				return `<div class="td-dev"><div class="td-av">${icon(c.kind)}</div><div class="nm"><b title="${esc(c.display)}">${esc(c.display)}</b><small>${esc(sub)}</small></div><div class="rt" title="${esc(c.conn == 'wifi' ? T('连接速率 · 信号强度', 'Link rate · signal') : T('有线连接', 'Wired connection'))}">${rt}</div></div>`;
+			}).join('') : `<div class="td-empty-row">${esc(T('现在没有设备在线', 'No devices online'))}</div>`;
 		}).then(() => this.refreshTraffic());
 	},
 
@@ -171,11 +176,18 @@ return view.extend({
 				return { mac: mac, rx: Math.max(0, Number(row[ri]) || 0), tx: Math.max(0, Number(row[ti]) || 0), client: clients[mac] };
 			}).filter(row => row.mac && row.mac != '00:00:00:00:00:00').sort((a, b) => (b.rx + b.tx) - (a.rx + a.tx));
 			const max = rows.length ? Math.max(1, rows[0].rx + rows[0].tx) : 1;
-			box.innerHTML = rows.length ? rows.map(row => {
+			const totals = rows.reduce((sum, row) => ({rx: sum.rx + row.rx, tx: sum.tx + row.tx}), {rx: 0, tx: 0});
+			this.$('td-traffic-summary').innerHTML = `<div><span>${esc(T('累计下载', 'Downloaded'))}</span><b class="down">↓ ${esc(td.bytes(totals.rx))}</b></div><div><span>${esc(T('累计上传', 'Uploaded'))}</span><b class="up">↑ ${esc(td.bytes(totals.tx))}</b></div>`;
+			this.set('td-traffic-footer', T(`已统计 ${rows.length} 台设备`, `${rows.length} devices recorded`));
+			box.innerHTML = rows.length ? rows.map((row, index) => {
 				const c = row.client || {};
-				return `<div class="td-traffic-row"><div class="td-traffic-name"><b title="${esc(c.display || row.mac)}">${esc(c.display || row.mac)}</b><small>${esc(c.ip || row.mac)}</small></div><div class="td-traffic-values"><span title="${esc(T('下载', 'Download'))}">↓ ${esc(td.bytes(row.rx))}</span><span title="${esc(T('上传', 'Upload'))}">↑ ${esc(td.bytes(row.tx))}</span></div><div class="td-bar"><i style="width:${Math.max(1, (row.rx + row.tx) / max * 100)}%"></i></div></div>`;
+				return `<div class="td-traffic-row"><span class="td-traffic-rank">${String(index + 1).padStart(2, '0')}</span><div class="td-traffic-name"><b title="${esc(c.display || row.mac)}">${esc(c.display || row.mac)}</b><small>${esc(c.ip || row.mac)}</small></div><div class="td-traffic-values"><span title="${esc(T('下载', 'Download'))}">↓ ${esc(td.bytes(row.rx))}</span><span title="${esc(T('上传', 'Upload'))}">↑ ${esc(td.bytes(row.tx))}</span></div><div class="td-traffic-meter" aria-hidden="true"><i class="down" style="width:${row.rx / max * 100}%"></i><i class="up" style="width:${row.tx / max * 100}%"></i></div></div>`;
 			}).join('') : `<div class="td-empty-row">${esc(T('暂无统计数据', 'No traffic recorded yet'))}</div>`;
-		}).catch(() => { box.innerHTML = `<div class="td-empty-row">${esc(T('暂时无法读取流量统计，请确认 nlbwmon 已安装并运行。', 'Traffic unavailable. Check that nlbwmon is installed and running.'))}</div>`; });
+		}).catch(() => {
+			this.$('td-traffic-summary').innerHTML = '';
+			this.set('td-traffic-footer', T('统计暂不可用', 'Statistics unavailable'));
+			box.innerHTML = `<div class="td-empty-row">${esc(T('暂时无法读取流量统计，请确认 nlbwmon 已安装并运行。', 'Traffic unavailable. Check that nlbwmon is installed and running.'))}</div>`;
+		});
 	},
 
 	paintSummary() {
