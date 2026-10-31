@@ -18,7 +18,8 @@
 				"/proc/sys/net/ipv4/tcp_congestion_control": [ "read" ],
 				"/sys/class/thermal/thermal_zone0/temp": [ "read" ],
 				"/sys/module/mt7915e/parameters/wed_enable": [ "read" ],
-				"/bin/ping": [ "exec" ]
+				"/bin/ping": [ "exec" ],
+				"/usr/sbin/nlbw -c json -g mac -o mac": [ "exec" ]
 			},
 			"uci": [ "7dollar", "firewall", "luci", "openclash" ]
 		},
