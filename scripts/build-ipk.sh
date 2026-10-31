@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # Build dist/luci-theme-7dollar_<version>_all.ipk without an OpenWrt SDK.
-# The result is a standard opkg package (tar.gz flavour, like ipkg-build).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -9,12 +8,10 @@ NAME=luci-theme-7dollar
 OUT=dist/${NAME}_${VER}_all.ipk
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
-export COPYFILE_DISABLE=1   # no macOS ._ files
-
+export COPYFILE_DISABLE=1
 TAR=tar; command -v gtar >/dev/null && TAR=gtar
 own() { if $TAR --version | grep -q GNU; then echo "--format=gnu --owner=0 --group=0 --numeric-owner"; else echo "--format ustar --no-xattrs --no-mac-metadata --uid 0 --gid 0 --uname root --gname root"; fi; }
 
-# ---- data ----
 D=$TMP/data
 mkdir -p "$D/www" "$D/usr/share/ucode/luci"
 cp -R htdocs/. "$D/www/"
@@ -26,19 +23,18 @@ find "$D" -type f -exec chmod 644 {} +
 chmod 755 "$D"/etc/uci-defaults/*
 SIZE=$(du -sk "$D" | cut -f1)
 
-# ---- control ----
 C=$TMP/control
 mkdir -p "$C"
 cat > "$C/control" <<CTL
 Package: $NAME
 Version: $VER
-Depends: libc, luci-base
-Source: https://github.com/itsmaiGe/luci-theme-7dollar
+Depends: libc, luci-base, nlbwmon
+Source: https://github.com/yy1105384898/luci-theme-7dollar
 SourceName: $NAME
 License: Apache-2.0
 Section: luci
-URL: https://github.com/itsmaiGe/luci-theme-7dollar
-Maintainer: itsmaiGe
+URL: https://github.com/yy1105384898/luci-theme-7dollar
+Maintainer: yy1105384898
 Architecture: all
 Installed-Size: $((SIZE * 1024))
 Description: 7Dollar — an elegant, lightweight LuCI theme with five palettes,
@@ -76,7 +72,6 @@ exit 0
 SH
 chmod 644 "$C/control" "$C/conffiles"; chmod 755 "$C/postinst" "$C/prerm" "$C/postrm"
 echo "2.0" > "$TMP/debian-binary"
-
 ( cd "$D" && $TAR $(own) -czf "$TMP/data.tar.gz" . )
 ( cd "$C" && $TAR $(own) -czf "$TMP/control.tar.gz" . )
 mkdir -p dist
