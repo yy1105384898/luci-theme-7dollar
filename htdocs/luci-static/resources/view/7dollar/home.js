@@ -5,6 +5,7 @@
 'require request';
 'require ui';
 'require 7dollar.common as td';
+'require 7dollar.openbox as ob';
 
 /* 7Dollar dashboard; plugin cards remain opt-in. */
 const T = td.T, icon = td.icon, esc = td.esc;
@@ -28,6 +29,8 @@ return view.extend({
 		const hidden = String(conf.hidden_cards || '').split(/[\s,]+/).filter(Boolean);
 		const ocNode = ((((menu.children || {}).admin || {}).children || {}).services || { children: {} }).children.openclash;
 		const showOC = conf.plugin_openclash == '1' && !!ocNode;
+		const services = ((((menu.children || {}).admin || {}).children || {}).services || {}).children || {};
+		const showOB = !ocNode && !!services.openbox;
 		this.s = {
 			down: new Array(N).fill(0), up: new Array(N).fill(0),
 			last: null, cpu: td.cpuStat(stat), cpuPct: null, wan: wan, wifi: wifi, info: info, board: board,
@@ -48,7 +51,7 @@ return view.extend({
 				<div><p class="td-eyebrow" id="td-today"></p><h1 class="td-serif" id="td-greet">${esc(T('你好', 'Hello'))}</h1><p class="td-sub" id="td-summary">&nbsp;</p></div>
 				<a class="btn" href="${L.url('admin/system/reboot')}">${icon('refresh')}${esc(T('重启路由器', 'Reboot'))}</a>
 			</div>
-			<div class="td-grid${showOC ? ' has-oc' : ''}">
+			<div class="td-grid${showOC || showOB ? ' has-oc' : ''}">
 				<section class="td-card k-conn td-full-md" data-card="conn">
 					<div class="td-card-h"><h3>${esc(T('网络连接', 'Connection'))}</h3><span class="td-chip" id="td-conn-chip"><span class="td-dot live"></span>${esc(T('畅通', 'Online'))}</span></div>
 					<div class="td-topo">
@@ -78,6 +81,7 @@ return view.extend({
 					<div class="td-card-h"><h3>${esc(T('设备流量', 'Device traffic'))}</h3><a href="${L.url('admin/clients')}">${esc(T('设备', 'Devices'))}${icon('chev')}</a></div>
 					<p class="td-muted td-traffic-note">${esc(T('当前统计周期 · 按总流量排序', 'Current accounting period · sorted by total'))}</p>
 					<div id="td-traffic" class="td-traffic" tabindex="0" role="region" aria-label="${esc(T('各设备流量统计', 'Traffic by device'))}"><div class="td-empty-row">${esc(T('正在读取…', 'Loading…'))}</div></div>`)}
+				${showOB ? ob.card() : ''}
 				${showOC ? `<section class="td-card k-proxy" data-card="oc">
 					<div class="td-card-h"><h3>OpenClash</h3><span class="td-chip mute" id="td-oc-chip"><span class="td-dot"></span>${esc(T('读取中', 'Loading'))}</span></div>
 					<dl class="td-kv"><div><dt>${esc(T('运行模式', 'Run mode'))}</dt><dd id="td-oc-run">—</dd></div><div><dt>${esc(T('配置文件', 'Config'))}</dt><dd id="td-oc-cfg">—</dd></div></dl>
@@ -97,6 +101,7 @@ return view.extend({
 		poll.add(L.bind(this.tick, this), 2);
 		poll.add(L.bind(this.slow, this), 10);
 		if (showOC) this.loadOC();
+		if (showOB) ob.attach(root);
 		requestAnimationFrame(() => requestAnimationFrame(() => this.paintRings()));
 		return root;
 	},
