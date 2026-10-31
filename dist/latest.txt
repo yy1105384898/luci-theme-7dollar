@@ -1,1 +1,1 @@
-luci-theme-7dollar_1.0.2-r2_all.ipk
+luci-theme-7dollar_1.0.2-r3_all.ipk
