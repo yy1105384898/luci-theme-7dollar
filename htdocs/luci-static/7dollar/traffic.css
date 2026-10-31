@@ -20,10 +20,19 @@
 .td-ob-upgrade>.btn{margin-top:10px}
 .td-ob-net{margin-top:16px;padding-top:14px;border-top:1px solid var(--line-soft);min-width:0}
 .td-ob-net-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;font-size:12px;color:var(--ink-3)}
-.td-ob-net-refresh{background:none;border:0;padding:2px 0;color:var(--accent);font:inherit;cursor:pointer}
+.td-ob-net-refresh{display:grid;place-items:center;background:none;border:0;border-radius:5px;padding:4px;color:var(--ink-2);font:inherit;cursor:pointer}
+.td-ob-net-refresh:hover{color:var(--accent);background:var(--line-soft)}
+.td-ob-net-refresh.testing{color:var(--accent)}
 .td-ob-net-refresh:disabled{opacity:.6;cursor:wait}
+.td-ob-auto-label{display:flex;align-items:center;gap:7px;min-width:0}
+.td-switch.td-ob-auto{width:32px;height:18px}
+.td-switch.td-ob-auto::after{width:14px;height:14px;top:2px;left:2px}
+.td-switch.td-ob-auto.on::after{transform:translateX(14px)}
+.td-ob-net button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .td-ob-sites{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.td-ob-site{display:grid;grid-template-columns:26px minmax(0,1fr);align-items:center;gap:6px 8px;background:var(--surface-2,var(--surface));border:1px solid var(--line-soft);border-radius:12px;padding:10px;min-width:0;color:var(--ink-3)}
+.td-ob-site{display:grid;grid-template-columns:26px minmax(0,1fr);align-items:center;gap:6px 8px;background:var(--surface-2,var(--surface));border:1px solid var(--line-soft);border-radius:12px;padding:10px;min-width:0;color:var(--ink-3);font:inherit;text-align:left;cursor:pointer;appearance:none}
+.td-ob-site:hover{border-color:var(--accent)}
+.td-ob-site:disabled{cursor:wait;opacity:.8}
 .td-ob-site-icon{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;font-size:12px;font-weight:700;background:var(--surface);color:var(--ink-2)}
 .td-ob-site[data-site="baidu"] .td-ob-site-icon{color:#6669df}
 .td-ob-site[data-site="google"] .td-ob-site-icon{color:#4285f4}
