@@ -18,3 +18,23 @@
 .td-ob-upgrade>label{display:block;font-size:12px;color:var(--ink-3);margin-bottom:6px}
 .td-ob-upgrade>select{width:100%;max-width:100%;min-width:0}
 .td-ob-upgrade>.btn{margin-top:10px}
+.td-ob-net{margin-top:16px;padding-top:14px;border-top:1px solid var(--line-soft);min-width:0}
+.td-ob-net-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;font-size:12px;color:var(--ink-3)}
+.td-ob-net-refresh{background:none;border:0;padding:2px 0;color:var(--accent);font:inherit;cursor:pointer}
+.td-ob-net-refresh:disabled{opacity:.6;cursor:wait}
+.td-ob-sites{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.td-ob-site{display:grid;grid-template-columns:26px minmax(0,1fr);align-items:center;gap:6px 8px;background:var(--surface-2,var(--surface));border:1px solid var(--line-soft);border-radius:12px;padding:10px;min-width:0;color:var(--ink-3)}
+.td-ob-site-icon{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;font-size:12px;font-weight:700;background:var(--surface);color:var(--ink-2)}
+.td-ob-site[data-site="baidu"] .td-ob-site-icon{color:#6669df}
+.td-ob-site[data-site="google"] .td-ob-site-icon{color:#4285f4}
+.td-ob-site[data-site="telegram"] .td-ob-site-icon{color:#269bd0}
+.td-ob-site-data{min-width:0;display:flex;flex-direction:column;gap:2px}
+.td-ob-site-name{font-size:11px;color:var(--ink-3)}
+.td-ob-site-result{font-size:13px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+.td-ob-site-bars{grid-column:1/-1;display:flex;align-items:flex-end;gap:2px;height:16px;overflow:hidden}
+.td-ob-site-bars:empty{border-bottom:1px dashed var(--line-soft)}
+.td-ob-site-bars i{flex:1;max-width:7px;min-width:2px;border-radius:1px 1px 0 0;background:currentColor;opacity:.75}
+.td-ob-site[data-state="good"] .td-ob-site-result,.td-ob-site-bars .good{color:#66b88b}
+.td-ob-site[data-state="slow"] .td-ob-site-result,.td-ob-site-bars .slow{color:#d5a13b}
+.td-ob-site[data-state="bad"] .td-ob-site-result,.td-ob-site-bars .bad{color:#de7966}
+.td-ob-net-note{display:block;margin-top:8px;font-size:10px;color:var(--ink-3);line-height:1.5}
