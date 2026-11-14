@@ -10,12 +10,16 @@ const T = td.T, icon = td.icon, esc = td.esc;
 const CARDS = [
 	[ 'rate', T('实时速率', 'Live traffic'), T('上传和下载速度曲线', 'Upload and download chart') ],
 	[ 'dev', T('在线设备', 'Online devices'), T('正在使用网络的设备', 'Devices currently online') ],
-	[ 'wifi', 'Wi‑Fi', T('名称、频段和连接数', 'Name, bands and clients'), t => td.menuHas(t, 'network/wireless'), T('这台设备没有无线网卡', 'This device has no wireless hardware') ],
+	[ 'wifi', T('设备流量', 'Device traffic'), T('每台设备的累计上传和下载', 'Upload and download totals per device') ],
 	[ 'sys', T('路由器状态', 'Router status'), T('处理器、内存、温度', 'CPU, memory, temperature') ],
 	[ 'ports', T('网口', 'Ports'), T('哪些网口接了网线、速率多少', 'Which ports are plugged in, and how fast') ],
 	[ 'disk', T('存储空间', 'Storage'), T('还剩多少空间装插件', 'Space left for apps and settings') ],
 	[ 'actions', T('常用操作', 'Quick actions'), T('备份、软件包、诊断、日志', 'Backup, software, diagnostics, logs') ],
 	[ 'apps', T('应用', 'Apps'), T('正在运行的插件', 'Plugins that are running'), t => td.flatten(t).some(p => p.group == 'apps' && p.path != 'admin/apps'), T('还没有安装插件', 'No plugins installed yet') ]
+];
+const PLUGINS = [
+	[ 'openclash', 'OpenClash', 'admin/services/openclash', T('运行状态与代理模式', 'Status and proxy mode') ],
+	[ 'openbox', 'Open-Box', 'admin/services/openbox', T('内核开关、开机自启、网站测速和升级', 'Core controls, autostart, latency tests and updates') ]
 ];
 
 return view.extend({
@@ -34,6 +38,11 @@ return view.extend({
 		const cards = CARDS.map(([ k, n, d, need, why ]) => need && !need(tree)
 			? `<div class="td-row off"><div class="lb"><b>${esc(n)} <span class="td-chip mute">${esc(T('未检测到', 'Not found'))}</span></b><small>${esc(why)}</small></div><button type="button" class="td-switch" disabled aria-label="${esc(n)}"></button></div>`
 			: `<div class="td-row"><div class="lb"><b>${esc(n)}</b><small>${esc(d)}</small></div><button type="button" class="td-switch" data-card="${k}" aria-label="${esc(n)}"></button></div>`).join('');
+		const has = path => { let n = tree; for (const k of path.split('/')) n = n && n.children && n.children[k]; return !!n; };
+		const plugins = PLUGINS.map(([ k, n, path, d ]) => {
+			const found = has(path);
+			return `<div class="td-row${found ? '' : ' off'}"><div class="lb"><b>${esc(n)} <span class="td-chip${found ? '' : ' mute'}">${esc(found ? T('已检测到', 'Detected') : T('未安装', 'Not installed'))}</span></b><small>${esc(d)}</small></div><button type="button" class="td-switch" ${found ? `data-plugin="${k}"` : 'disabled'} aria-label="${esc(n)}"></button></div>`;
+		}).join('');
 
 
 		const root = td.html(`<div class="td-look">
@@ -58,6 +67,11 @@ return view.extend({
 				<div class="td-rows">${cards}</div>
 			</section>
 
+			<section class="td-card td-sect">
+				<h3 class="td-sect-t">${esc(T('插件卡片', 'Plugin cards'))}</h3>
+				<div class="td-rows">${plugins}</div>
+			</section>
+
 			<div class="td-hint">${icon('info')}<span>${esc(T('换回原主题：系统 → 通用 → 语言和界面', 'Switch back: System → General → Language and Style'))}</span></div>
 		</div>`);
 
@@ -70,6 +84,10 @@ return view.extend({
 			const list = td.words(this.conf[field]), i = list.indexOf(k);
 			i > -1 ? list.splice(i, 1) : list.push(k);
 			this.update({ [field]: list.join(' ') });
+		}));
+		root.querySelectorAll('[data-plugin]').forEach(b => b.addEventListener('click', () => {
+			const key = 'plugin_' + b.dataset.plugin;
+			this.update({ [key]: this.conf[key] == '1' ? '0' : '1' });
 		}));
 
 		const use = root.querySelector('#td-use');
@@ -88,6 +106,7 @@ return view.extend({
 		this.root.querySelectorAll('.td-pal').forEach(b => b.classList.toggle('on', b.dataset.pick == c.palette));
 		this.root.querySelectorAll('#td-modes button').forEach(b => b.classList.toggle('on', b.dataset.m == c.mode));
 		this.root.querySelectorAll('[data-card]').forEach(b => b.classList.toggle('on', td.cardOn(c, b.dataset.card)));
+		this.root.querySelectorAll('[data-plugin]').forEach(b => b.classList.toggle('on', c['plugin_' + b.dataset.plugin] == '1'));
 	},
 
 	update(patch) {

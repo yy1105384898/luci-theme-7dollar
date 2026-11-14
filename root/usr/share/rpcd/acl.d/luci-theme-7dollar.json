@@ -3,47 +3,201 @@
 		"description": "Grant access to the 7Dollar theme dashboard and appearance settings",
 		"read": {
 			"ubus": {
-				"luci-rpc": [ "getDHCPLeases", "getHostHints", "getWirelessDevices", "getNetworkDevices" ],
-				"iwinfo": [ "assoclist" ],
-				"network.interface": [ "dump" ],
-				"system": [ "board", "info" ],
-				"service": [ "list" ],
-				"luci": [ "getMountPoints" ],
-				"uci": [ "get" ],
-				"file": [ "read", "exec" ]
+				"luci-rpc": [
+					"getDHCPLeases",
+					"getHostHints",
+					"getWirelessDevices",
+					"getNetworkDevices"
+				],
+				"iwinfo": [
+					"assoclist"
+				],
+				"network.interface": [
+					"dump"
+				],
+				"system": [
+					"board",
+					"info"
+				],
+				"service": [
+					"list"
+				],
+				"luci": [
+					"getMountPoints",
+					"getInitList"
+				],
+				"uci": [
+					"get"
+				],
+				"file": [
+					"read",
+					"exec"
+				]
 			},
 			"file": {
-				"/proc/stat": [ "read" ],
-				"/proc/net/dev": [ "read" ],
-				"/proc/net/route": [ "read" ],
-				"/proc/net/arp": [ "read" ],
-				"/sys/class/net/*/brforward": [ "read" ],
-				"/sys/devices/virtual/net/*/brforward": [ "read" ],
-				"/proc/sys/net/ipv4/tcp_congestion_control": [ "read" ],
-				"/sys/class/thermal": [ "list" ],
-				"/sys/class/hwmon": [ "list" ],
-				"/sys/class/thermal/thermal_zone*/type": [ "read" ],
-				"/sys/class/thermal/thermal_zone*/temp": [ "read" ],
-				"/sys/class/hwmon/hwmon*/name": [ "read" ],
-				"/sys/class/hwmon/hwmon*/temp1_input": [ "read" ],
-				"/proc/[0-9]*/net/dev": [ "read" ],
-				"/proc/[0-9]*/net/route": [ "read" ],
-				"/proc/[0-9]*/net/arp": [ "read" ],
-				"/sys/devices/*/thermal_zone*/type": [ "read" ],
-				"/sys/devices/*/thermal_zone*/temp": [ "read" ],
-				"/sys/devices/*/hwmon*/name": [ "read" ],
-				"/sys/devices/*/hwmon*/temp1_input": [ "read" ],
-				"/sys/module/mt79*e/parameters/wed_enable": [ "read" ],
-				"/opt/open-box/data/panel-port": [ "read" ],
-				"/bin/ping": [ "exec" ]
+				"/proc/stat": [
+					"read"
+				],
+				"/proc/net/dev": [
+					"read"
+				],
+				"/proc/net/route": [
+					"read"
+				],
+				"/proc/net/arp": [
+					"read"
+				],
+				"/sys/class/net/*/brforward": [
+					"read"
+				],
+				"/sys/devices/virtual/net/*/brforward": [
+					"read"
+				],
+				"/proc/sys/net/ipv4/tcp_congestion_control": [
+					"read"
+				],
+				"/sys/class/thermal": [
+					"list"
+				],
+				"/sys/class/hwmon": [
+					"list"
+				],
+				"/sys/class/thermal/thermal_zone*/type": [
+					"read"
+				],
+				"/sys/class/thermal/thermal_zone*/temp": [
+					"read"
+				],
+				"/sys/class/hwmon/hwmon*/name": [
+					"read"
+				],
+				"/sys/class/hwmon/hwmon*/temp1_input": [
+					"read"
+				],
+				"/proc/[0-9]*/net/dev": [
+					"read"
+				],
+				"/proc/[0-9]*/net/route": [
+					"read"
+				],
+				"/proc/[0-9]*/net/arp": [
+					"read"
+				],
+				"/sys/devices/*/thermal_zone*/type": [
+					"read"
+				],
+				"/sys/devices/*/thermal_zone*/temp": [
+					"read"
+				],
+				"/sys/devices/*/hwmon*/name": [
+					"read"
+				],
+				"/sys/devices/*/hwmon*/temp1_input": [
+					"read"
+				],
+				"/sys/module/mt79*e/parameters/wed_enable": [
+					"read"
+				],
+				"/opt/open-box/data/panel-port": [
+					"read"
+				],
+				"/bin/ping": [
+					"exec"
+				],
+				"/bin/cat /proc/net/arp": [
+					"exec"
+				],
+				"/bin/cat /proc/net/dev": [
+					"exec"
+				],
+				"/bin/cat /proc/net/route": [
+					"exec"
+				],
+				"/sys/class/thermal/thermal_zone0/temp": [
+					"read"
+				],
+				"/sys/module/mt7915e/parameters/wed_enable": [
+					"read"
+				],
+				"/usr/sbin/nlbw -c json -g mac -o mac": [
+					"exec"
+				],
+				"/opt/open-box/meta.json": [
+					"read"
+				],
+				"/opt/open-box/openwrt/bin/open-box check": [
+					"exec"
+				],
+				"/opt/open-box/openwrt/bin/open-box start --status": [
+					"exec"
+				],
+				"/opt/open-box/update.sh --probe *": [
+					"exec"
+				],
+				"/tmp/openbox-update.status": [
+					"read"
+				],
+				"/bin/sh /usr/share/7dollar/connectivity.sh baidu": [
+					"exec"
+				],
+				"/bin/sh /usr/share/7dollar/connectivity.sh google": [
+					"exec"
+				],
+				"/bin/sh /usr/share/7dollar/connectivity.sh openai": [
+					"exec"
+				],
+				"/bin/sh /usr/share/7dollar/connectivity.sh telegram": [
+					"exec"
+				]
 			},
-			"uci": [ "7dollar", "firewall", "luci", "AdGuardHome", "bandix", "homeproxy", "ksmbd", "mosdns", "nikki", "openclash", "passwall", "passwall2", "samba4", "shadowsocksr", "smartdns" ]
+			"uci": [
+				"7dollar",
+				"firewall",
+				"luci",
+				"AdGuardHome",
+				"bandix",
+				"homeproxy",
+				"ksmbd",
+				"mosdns",
+				"nikki",
+				"openclash",
+				"passwall",
+				"passwall2",
+				"samba4",
+				"shadowsocksr",
+				"smartdns"
+			]
 		},
 		"write": {
 			"ubus": {
-				"uci": [ "add", "set", "delete", "commit" ]
+				"uci": [
+					"add",
+					"set",
+					"delete",
+					"commit"
+				],
+				"luci": [
+					"setInitAction"
+				],
+				"file": [
+					"exec"
+				]
 			},
-			"uci": [ "7dollar", "luci" ]
+			"uci": [
+				"7dollar",
+				"luci"
+			],
+			"file": {
+				"/opt/open-box/openwrt/bin/open-box start --detach": [
+					"exec"
+				],
+				"/opt/open-box/update.sh --detach --direct --expect *": [
+					"exec"
+				],
+				"/opt/open-box/update.sh --detach --mirror * --expect *": [
+					"exec"
+				]
+			}
 		}
 	}
 }

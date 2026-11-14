@@ -32,7 +32,7 @@ const callInfo = rpc.declare({ object: 'system', method: 'info' });
 const callServices = rpc.declare({ object: 'service', method: 'list', expect: { '': {} } });
 const callMounts = rpc.declare({ object: 'luci', method: 'getMountPoints', expect: { result: [] } });
 
-const DEFAULTS = { palette: 'clay', mode: 'auto', hidden_cards: '', shown_cards: '' };
+const DEFAULTS = { palette: 'clay', mode: 'auto', hidden_cards: '', shown_cards: '', plugin_openbox: '1', plugin_openclash: '0' };
 const OPT_IN = [ 'apps' ];   // cards that are off until switched on (they show plugin information)
 
 const words = s => String(s || '').split(/[\s,]+/).filter(Boolean);
@@ -404,7 +404,10 @@ function pretty(name) {
 /* ---------------- data ---------------- */
 
 function readFile(path) {
-	return L.resolveDefault(fs.read(path), null);
+	return L.resolveDefault(fs.read(path), null).then(data => {
+		if (data != null || (path != '/proc/net/dev' && path != '/proc/net/arp' && path != '/proc/net/route')) return data;
+		return L.resolveDefault(fs.exec('/bin/cat', [path]), {}).then(r => r.stdout || null);
+	});
 }
 
 /* MACs a bridge has heard from in the last few minutes: its forwarding table forgets a port after
@@ -535,10 +538,12 @@ function clients(wifi, uplink) {
 		return heard(bridges).then(macs => {
 			rows.forEach(f => {
 				if (macs && !macs[f[3].toUpperCase()]) return;
-				const c = get(f[3]);
+				if (f[3].toUpperCase() == '00:00:00:00:00:00') return;
+				const c = get(f[3]), h = hints[c.mac] || hints[c.mac.toLowerCase()] || {};
 				c.online = true;
 				c.conn = lan ? 'lan' : 'wired';
 				c.ip = c.ip || f[0];
+				c.name = c.name || h.name;
 			});
 
 			for (const mac in (hints || {})) {

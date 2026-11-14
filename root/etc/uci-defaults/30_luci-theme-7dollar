@@ -3,9 +3,9 @@
 # already registered: then the user's own theme choice stays. (Packages up to 1.0.7 unregister
 # the theme when upgraded, so upgrading from those still lands on 7Dollar, as before.)
 
-[ -f /etc/config/7dollar ] || printf "\nconfig theme 'main'\n\toption palette 'clay'\n\toption mode 'auto'\n" > /etc/config/7dollar
-
-uci -q delete 7dollar.main.plugin_openclash && uci commit 7dollar   # replaced by the apps card in 1.0.12
+if [ ! -f /etc/config/7dollar ]; then
+	printf "\nconfig theme 'main'\n\toption palette 'clay'\n\toption mode 'auto'\n\toption plugin_openbox '1'\n\toption plugin_openclash '0'\n" > /etc/config/7dollar
+fi
 
 [ "$PKG_UPGRADE" = 1 ] && uci -q get luci.themes.7Dollar >/dev/null || uci -q set luci.main.mediaurlbase=/luci-static/7dollar
 uci -q set luci.themes.7Dollar=/luci-static/7dollar

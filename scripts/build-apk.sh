@@ -69,9 +69,9 @@ ${APK:-apk} mkpkg \
 	--info "arch:noarch" \
 	--info "license:Apache-2.0" \
 	--info "origin:$NAME" \
-	--info "url:https://github.com/itsmaiGe/luci-theme-7dollar" \
-	--info "maintainer:itsmaiGe" \
-	--info "depends:libc luci-base" \
+	--info "url:https://github.com/yy1105384898/luci-theme-7dollar" \
+	--info "maintainer:yy1105384898" \
+	--info "depends:libc luci-base nlbwmon" \
 	--script "post-install:$S/post-install" \
 	--script "post-upgrade:$S/post-upgrade" \
 	--script "pre-deinstall:$S/pre-deinstall" \

@@ -80,7 +80,7 @@ LuCI 原有功能全部保留，只调整了显示方式。
 
 适用于 23.05 / 24.10。25.x 请使用方法二。
 
-1. 下载安装包：[luci-theme-7dollar_1.0.16-r1_all.ipk](https://github.com/itsmaiGe/luci-theme-7dollar/releases/latest/download/luci-theme-7dollar_1.0.16-r1_all.ipk)（历史版本见 [Releases](https://github.com/itsmaiGe/luci-theme-7dollar/releases)）
+1. 下载安装包：[luci-theme-7dollar_1.0.16-r1_all.ipk](https://github.com/yy1105384898/luci-theme-7dollar/releases/latest/download/luci-theme-7dollar_1.0.16-r1_all.ipk)（历史版本见 [Releases](https://github.com/yy1105384898/luci-theme-7dollar/releases)）
 2. 在浏览器中打开路由器后台（通常为 `192.168.1.1`），输入密码登录
 3. 打开 **系统 → 软件包 → 上传软件包…**，选择下载的文件，点击 **上传**，再点击 **安装**
 4. 刷新页面（Windows 按 <kbd>F5</kbd>，Mac 按 <kbd>⌘ R</kbd>）
@@ -103,7 +103,7 @@ LuCI 原有功能全部保留，只调整了显示方式。
 3. 粘贴下面的命令并回车，出现「完成」后刷新浏览器：
 
    ```sh
-   wget -qO- https://raw.githubusercontent.com/itsmaiGe/luci-theme-7dollar/main/install.sh | sh
+   wget -qO- https://raw.githubusercontent.com/yy1105384898/luci-theme-7dollar/main/install.sh | sh
    ```
 
 <details>
@@ -116,7 +116,7 @@ LuCI 原有功能全部保留，只调整了显示方式。
 也可以使用 GitHub 加速代理（将 `<代理地址>` 替换为实际地址）：
 
 ```sh
-wget -qO- <代理地址>/https://raw.githubusercontent.com/itsmaiGe/luci-theme-7dollar/main/install.sh | PROXY=<代理地址>/ sh
+wget -qO- <代理地址>/https://raw.githubusercontent.com/yy1105384898/luci-theme-7dollar/main/install.sh | PROXY=<代理地址>/ sh
 ```
 </details>
 
@@ -128,7 +128,7 @@ wget -qO- <代理地址>/https://raw.githubusercontent.com/itsmaiGe/luci-theme-7
 在 OpenWrt 源码或 SDK 中：
 
 ```sh
-git clone https://github.com/itsmaiGe/luci-theme-7dollar.git feeds/luci/themes/luci-theme-7dollar
+git clone https://github.com/yy1105384898/luci-theme-7dollar.git feeds/luci/themes/luci-theme-7dollar
 ./scripts/feeds update -i && ./scripts/feeds install luci-theme-7dollar
 make menuconfig   # LuCI → Themes → luci-theme-7dollar
 make package/luci-theme-7dollar/compile V=s
@@ -157,7 +157,7 @@ make package/luci-theme-7dollar/compile V=s
 - **命令卸载**：
 
   ```sh
-  wget -qO- https://raw.githubusercontent.com/itsmaiGe/luci-theme-7dollar/main/uninstall.sh | sh
+  wget -qO- https://raw.githubusercontent.com/yy1105384898/luci-theme-7dollar/main/uninstall.sh | sh
   ```
 
 <details>
@@ -210,14 +210,14 @@ install.sh / uninstall.sh        安装 / 卸载脚本
 - Status pages (Wi‑Fi, interfaces, overview) show the essentials; MACs, BSSIDs, packet counts and the like sit behind *Details*
 - Responsive and zoom-friendly; no external fonts or requests; 48 KB package
 
-**Install**: upload [the ipk](https://github.com/itsmaiGe/luci-theme-7dollar/releases/latest/download/luci-theme-7dollar_1.0.16-r1_all.ipk) via *System → Software → Upload Package* (23.05 / 24.10), or run over SSH on any version (picks the ipk or the [apk](https://github.com/itsmaiGe/luci-theme-7dollar/tree/main/dist) automatically):
+**Install**: upload [the ipk](https://github.com/yy1105384898/luci-theme-7dollar/releases/latest/download/luci-theme-7dollar_1.0.16-r1_all.ipk) via *System → Software → Upload Package* (23.05 / 24.10), or run over SSH on any version (picks the ipk or the [apk](https://github.com/yy1105384898/luci-theme-7dollar/tree/main/dist) automatically):
 
 ```sh
-wget -qO- https://raw.githubusercontent.com/itsmaiGe/luci-theme-7dollar/main/install.sh | sh
+wget -qO- https://raw.githubusercontent.com/yy1105384898/luci-theme-7dollar/main/install.sh | sh
 ```
 
 **Uninstall**: `opkg remove luci-theme-7dollar` / `apk del luci-theme-7dollar`, or the `uninstall.sh` one-liner.
 
 ## License
 
-[Apache-2.0](LICENSE) © itsmaiGe
+[Apache-2.0](LICENSE) © yy1105384898

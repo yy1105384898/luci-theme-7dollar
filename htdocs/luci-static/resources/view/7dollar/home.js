@@ -5,6 +5,7 @@
 'require request';
 'require ui';
 'require 7dollar.common as td';
+'require 7dollar.openbox as ob';
 
 /*
  * 7Dollar home dashboard. Only router data by default. The opt-in apps card lists whatever
@@ -12,8 +13,13 @@
  */
 
 const T = td.T, icon = td.icon, esc = td.esc;
-const N = 60;
+const N = 120;
 const RING = 2 * Math.PI * 24;
+const HOME_CACHE = '7dollar.home.snapshot.v1';
+function loadSnapshot() {
+	try { const c = JSON.parse(sessionStorage.getItem(HOME_CACHE) || 'null'); return c && c.time > Date.now() - 86400000 ? c : {}; }
+	catch (_) { return {}; }
+}
 
 /* One line of what matters most for the popular apps, read from their config (never their API);
  * every other app shows name and state only. Keyed by procd service name. */
@@ -76,14 +82,18 @@ return view.extend({
 	},
 
 	render([ conf, board, info, wan, [ menu, wifi ], fw, wed, cc, stat, dev ]) {
-		const apps = td.flatten(menu).filter(p => p.group == 'apps' && p.path != 'admin/apps');
+		const services = ((((menu.children || {}).admin || {}).children || {}).services || {}).children || {};
+		const showOB = conf.plugin_openbox == '1' && !!services.openbox;
+		const apps = td.flatten(menu).filter(p => p.group == 'apps' && p.path != 'admin/apps'
+			&& !(showOB && p.path == 'admin/services/openbox')
+			&& (p.path != 'admin/services/openclash' || conf.plugin_openclash == '1'));
 		const mode = wan && wan.up ? wan.mode : 'wan';
 		const software = td.software(menu);
 
 		this.s = {
 			down: new Array(N).fill(0), up: new Array(N).fill(0),
 			last: null, cpu: td.cpuStat(stat), cpuPct: null, wan: wan, wifi: wifi || { radios: {}, aps: [] }, info: info, board: board,
-			clients: [], ping: null, apps: apps, hasWifi: !!(wifi && Object.keys(wifi.radios).length), mode: mode
+			clients: [], allClients: [], ping: null, apps: apps, hasWifi: !!(wifi && Object.keys(wifi.radios).length), mode: mode, showOB: showOB
 		};
 
 		const fwd = Object.values(fw || {})[0] || {};
@@ -126,14 +136,16 @@ return view.extend({
 
 		/* Cards below the top row, in reading order. Each goes into whichever column is shorter so far
 		 * (rough heights), so the two columns stay balanced whatever is hidden or missing. */
-		const H = { dev: 6, wifi: 4, sys: 3.5, apps: 3, ports: 2, disk: 2, actions: 3 }, cols = [ [], [] ], h = [ 0, 0 ];
+		const H = { dev: 6, wifi: 4, openbox: 7, sys: 3.5, apps: 3, ports: 2, disk: 2, actions: 3 }, cols = [ [], [] ], h = [ 0, 0 ];
 		for (const [ k, html ] of [
 			[ 'dev', card('dev', 'k-dev', `
 					<div class="td-card-h"><h3>${esc(T('在线设备', 'Online devices'))}</h3><a href="${L.url('admin/clients')}">${esc(T('全部', 'All'))}${icon('chev')}</a></div>
-					<div id="td-devs"><div class="td-empty-row">${esc(T('正在读取…', 'Loading…'))}</div></div>`) ],
-			[ 'wifi', this.s.hasWifi ? card('wifi', 'k-wifi', `
-					<div class="td-card-h"><h3>Wi‑Fi</h3><a href="${L.url('admin/network/wireless')}">${esc(T('设置', 'Settings'))}${icon('chev')}</a></div>
-					<div id="td-wifi"></div>`) : '' ],
+					<div id="td-device-summary" class="td-device-summary"></div><div id="td-devs"><div class="td-empty-row">${esc(T('正在读取…', 'Loading…'))}</div></div><a class="td-device-footer" href="${L.url('admin/clients')}">${esc(T('打开设备管理', 'Manage devices'))}${icon('chev')}</a>`) ],
+			[ 'wifi', card('wifi', 'k-wifi', `
+					<div class="td-card-h"><h3>${esc(T('设备流量', 'Device traffic'))}</h3><a href="${L.url('admin/clients')}">${esc(T('设备', 'Devices'))}${icon('chev')}</a></div>
+					<p class="td-muted td-traffic-note">${esc(T('当前统计周期 · 按总流量排序', 'Current accounting period · sorted by total'))}</p>
+					<div id="td-traffic-summary" class="td-traffic-summary"></div><div id="td-traffic" class="td-traffic"><div class="td-empty-row">${esc(T('正在读取…', 'Loading…'))}</div></div><div id="td-traffic-footer" class="td-device-footer td-muted"></div>`) ],
+			[ 'openbox', showOB ? ob.card() : '' ],
 			[ 'sys', card('sys', 'k-sys', `
 					<div class="td-card-h"><h3>${esc(T('路由器状态', 'Router status'))}</h3><span class="td-muted">${esc(os)}</span></div>
 					<div class="td-rings">
@@ -162,6 +174,7 @@ return view.extend({
 		]) if (html) { const c = h[1] < h[0] ? 1 : 0; cols[c].push(html); h[c] += H[k]; }
 
 		const root = td.html(`<div class="td-home">
+			<link rel="stylesheet" href="/luci-static/7dollar/traffic.css">
 			<div class="td-head">
 				<div>
 					<p class="td-eyebrow" id="td-today"></p>
@@ -190,6 +203,8 @@ return view.extend({
 
 		this.root = root;
 		this.$ = id => root.querySelector('#' + id);
+		this.snapshot = loadSnapshot();
+		this.restoreSnapshot();
 
 		this.greet();
 		this.paintStatic();
@@ -201,10 +216,12 @@ return view.extend({
 		this.refreshClients();
 		this.pingGateway();
 
-		poll.add(L.bind(this.tick, this), 2);
+		poll.add(L.bind(this.tick, this), 1);
+		poll.add(L.bind(this.refreshClients, this), 5);
 		poll.add(L.bind(this.slow, this), 10);
 
 		this.paintApps();
+		if (showOB) ob.attach(root);
 
 		requestAnimationFrame(() => requestAnimationFrame(() => this.paintRings()));
 
@@ -355,16 +372,26 @@ return view.extend({
 
 	refreshClients() {
 		return td.clients(this.s.wifi, this.s.wan).then(list => {
+			this.s.allClients = list;
+			this.paintClients(list);
+			this.saveSnapshot({ clients: list });
+			return this.refreshTraffic();
+		});
+	},
+
+	paintClients(list) {
 			const online = list.filter(c => c.online);
 			this.s.clients = online;
 			this.set('td-ndev', online.length + ' ' + T('台设备', online.length == 1 ? 'device' : 'devices'));
 			this.set('td-ndev-s', online.length ? T('正在上网', 'online') : T('暂无设备', 'none yet'));
 			this.paintSummary();
 
+			const summary = this.$('td-device-summary');
+			if (summary) summary.innerHTML = [[online.length, T('在线', 'Online')], [online.filter(c => c.conn != 'wifi').length, T('有线', 'Wired')], [online.filter(c => c.conn == 'wifi').length, T('无线', 'Wireless')]].map(([n, label]) => `<div><b>${n}</b><span>${esc(label)}</span></div>`).join('');
 			const box = this.$('td-devs');
 			if (!box) return;
 
-			const top = online.slice(0, 6);
+			const top = online;
 			this.put(box, top.length ? top.map(c => {
 				const [ sig ] = td.signal(c.signal);
 				const sub = c.conn == 'wifi' ? `Wi‑Fi ${td.bandName(c.band)} · ${sig}` : td.connName(c) + (c.ip && c.ip != c.display ? ' · ' + c.ip : '');
@@ -372,10 +399,47 @@ return view.extend({
 					? `${Math.round(c.link)} Mbps<div class="td-bar"><i style="width:${td.quality(c.signal)}%"></i></div>`
 					: `${esc(c.conn == 'lan' ? T('局域网', 'LAN') : T('有线', 'Wired'))}<div class="td-bar"><i style="width:100%"></i></div>`;
 				return `<div class="td-dev"><div class="td-av">${icon(c.kind)}</div><div class="nm"><b>${esc(c.display)}</b><small>${esc(sub)}</small></div><div class="rt" title="${esc(T('连接速率 · 信号强度', 'Link rate · signal'))}">${rt}</div></div>`;
-			}).join('') + (online.length > 6 ? `<a class="td-more" href="${L.url('admin/clients')}">${esc(T(`还有 ${online.length - 6} 台设备`, `${online.length - 6} more`))}</a>` : '')
+			}).join('')
 			: `<div class="td-empty-row">${esc(T('现在没有设备在线', 'No devices online'))}</div>`);
-		});
 	},
+
+	refreshTraffic() {
+		const box = this.$('td-traffic'); if (!box) return Promise.resolve();
+		return fs.exec('/usr/sbin/nlbw', [ '-c', 'json', '-g', 'mac', '-o', 'mac' ]).then(result => {
+			if (result.code !== 0) throw new Error('nlbw');
+			const data = JSON.parse(result.stdout);
+			this.paintTraffic(data); this.saveSnapshot({ traffic: data });
+		}).catch(() => { if (!this.snapshot.traffic) this.set('td-traffic-footer', T('统计暂不可用', 'Statistics unavailable')); });
+	},
+
+	paintTraffic(data) {
+		const box = this.$('td-traffic'); if (!box) return;
+		const columns = data.columns || [], mi = columns.indexOf('mac'), ri = columns.indexOf('rx_bytes'), ti = columns.indexOf('tx_bytes');
+		if (mi < 0 || ri < 0 || ti < 0 || !Array.isArray(data.data)) return;
+		const clients = {}; (this.s.allClients || []).forEach(c => { clients[c.mac.toUpperCase()] = c; });
+		const rows = data.data.map(row => { const mac = String(row[mi] || '').toUpperCase(); return { mac, rx: Math.max(0, Number(row[ri]) || 0), tx: Math.max(0, Number(row[ti]) || 0), client: clients[mac] }; })
+			.filter(r => r.mac && r.mac != '00:00:00:00:00:00').sort((a, b) => b.rx + b.tx - a.rx - a.tx);
+		const max = rows.length ? Math.max(1, rows[0].rx + rows[0].tx) : 1;
+		const totals = rows.reduce((a, r) => ({ rx: a.rx + r.rx, tx: a.tx + r.tx }), { rx: 0, tx: 0 });
+		this.$('td-traffic-summary').innerHTML = `<div><span>${esc(T('累计下载', 'Downloaded'))}</span><b class="down">↓ ${esc(td.bytes(totals.rx))}</b></div><div><span>${esc(T('累计上传', 'Uploaded'))}</span><b class="up">↑ ${esc(td.bytes(totals.tx))}</b></div>`;
+		this.set('td-traffic-footer', T(`已统计 ${rows.length} 台设备`, `${rows.length} devices recorded`));
+		this.put(box, rows.map((r, i) => { const c = r.client || {}; return `<div class="td-traffic-row"><span class="td-traffic-rank">${String(i + 1).padStart(2, '0')}</span><div class="td-traffic-name"><b title="${esc(c.display || r.mac)}">${esc(c.display || r.mac)}</b><small>${esc(c.ip || r.mac)}</small></div><div class="td-traffic-values"><span>↓ ${esc(td.bytes(r.rx))}</span><span>↑ ${esc(td.bytes(r.tx))}</span></div><div class="td-traffic-meter"><i class="down" style="width:${r.rx / max * 100}%"></i><i class="up" style="width:${r.tx / max * 100}%"></i></div></div>`; }).join(''));
+	},
+
+	saveSnapshot(patch) { Object.assign(this.snapshot, patch, { time: Date.now() }); try { sessionStorage.setItem(HOME_CACHE, JSON.stringify(this.snapshot)); } catch (_) {} },
+
+	restoreSnapshot() {
+		const c = this.snapshot;
+		try { if (Array.isArray(c.clients)) { this.s.allClients = c.clients; this.paintClients(c.clients); } } catch (_) {}
+		try { if (c.traffic) this.paintTraffic(c.traffic); } catch (_) {}
+		const valid = a => Array.isArray(a) && a.length > 0 && a.length <= N && a.every(v => typeof v == 'number' && Number.isFinite(v) && v >= 0);
+		if (c.rate && valid(c.rate.down) && valid(c.rate.up)) {
+			this.s.down = new Array(N - c.rate.down.length).fill(0).concat(c.rate.down); this.s.up = new Array(N - c.rate.up.length).fill(0).concat(c.rate.up);
+			this.paintRate(this.s.down[N - 1], this.s.up[N - 1]);
+		}
+	},
+
+	paintRate(rx, tx) { const [ dv, du ] = td.rate(rx), [ uv, uu ] = td.rate(tx); this.set('td-down', dv); this.set('td-down-u', du); this.set('td-up', uv); this.set('td-up-u', uu); this.drawChart(); },
 
 	paintSummary() {
 		const info = this.s.info || {}, n = this.s.clients.length;
@@ -402,10 +466,8 @@ return view.extend({
 			const rx = Math.max(0, (d.rx - this.s.last.rx) / dt), tx = Math.max(0, (d.tx - this.s.last.tx) / dt);
 			this.s.down.push(rx); this.s.down.shift();
 			this.s.up.push(tx); this.s.up.shift();
-			const [ dv, du ] = td.rate(rx), [ uv, uu ] = td.rate(tx);
-			this.set('td-down', dv); this.set('td-down-u', du);
-			this.set('td-up', uv); this.set('td-up-u', uu);
-			this.drawChart();
+			this.paintRate(rx, tx);
+			this.saveSnapshot({ rate: { down: this.s.down, up: this.s.up } });
 		}
 
 		if (d) {
@@ -487,7 +549,7 @@ return view.extend({
 			this.paintWifi(wifi);
 			this.paintStatic();
 			this.paintDisk();
-			return Promise.all([ this.refreshClients(), ++this.ticks % 3 ? null : Promise.all([ this.refreshPorts(), this.paintApps(), this.pingGateway() ]) ]);
+			return ++this.ticks % 3 ? Promise.resolve() : Promise.all([ this.refreshPorts(), this.paintApps(), this.pingGateway() ]);
 		});
 	},
 

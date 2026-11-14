@@ -2,16 +2,20 @@
  7Dollar — an elegant LuCI theme
  Licensed to the public under the Apache License 2.0.
 -#}
+{% import { stat } from 'fs'; %}
 		{% if (!blank_page): %}
 					<footer class="td-footer">
-						<span>{{ version.distname }} {{ version.distversion }} · <a href="https://github.com/itsmaiGe/luci-theme-7dollar" target="_blank" rel="noreferrer">7Dollar</a></span>
+						<span>{{ version.distname }} {{ version.distversion }} · <a href="https://github.com/yy1105384898/luci-theme-7dollar" target="_blank" rel="noreferrer">7Dollar</a></span>
 						<span><a href="https://github.com/openwrt/luci" target="_blank" rel="noreferrer">{{ version.luciname }} ({{ version.luciversion }})</a>{% if (lua_active): %} · {{ _('Lua compatibility mode active') }}{% endif %}</span>
 					</footer>
 				</div>
 			</main>
 		</div>
 		<ul id="modemenu" style="display:none"></ul>
-		<script>L.require('menu-7dollar')</script>
+		<script>
+			L.env.resource_version = (L.env.resource_version || '') + '-7dollar-{{ max(stat('/www/luci-static/resources/7dollar/common.js')?.mtime ?? 0, stat('/www/luci-static/resources/view/7dollar/appearance.js')?.mtime ?? 0, stat('/www/luci-static/resources/view/7dollar/home.js')?.mtime ?? 0) }}';
+			L.require('menu-7dollar');
+		</script>
 		{% endif %}
 	</body>
 </html>

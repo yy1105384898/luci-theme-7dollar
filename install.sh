@@ -1,10 +1,10 @@
 #!/bin/sh
 # 7Dollar — one line installer for OpenWrt
-#   wget -qO- https://raw.githubusercontent.com/itsmaiGe/luci-theme-7dollar/main/install.sh | sh
+#   wget -qO- https://raw.githubusercontent.com/yy1105384898/luci-theme-7dollar/main/install.sh | sh
 # Behind the GFW? put a GitHub proxy in front:
-#   wget -qO- https://<proxy>/https://raw.githubusercontent.com/itsmaiGe/luci-theme-7dollar/main/install.sh | PROXY=https://<proxy>/ sh
+#   wget -qO- https://<proxy>/https://raw.githubusercontent.com/yy1105384898/luci-theme-7dollar/main/install.sh | PROXY=https://<proxy>/ sh
 
-REPO=itsmaiGe/luci-theme-7dollar
+REPO=yy1105384898/luci-theme-7dollar
 BRANCH=${BRANCH:-main}
 P=${PROXY:-}
 RAW="${P}https://raw.githubusercontent.com/$REPO/$BRANCH"
@@ -13,10 +13,10 @@ TMP=/tmp/7dollar.$$
 say()  { printf '\033[38;5;173m●\033[0m %s\n' "$*"; }
 die()  { printf '\033[31m✕ %s\033[0m\n' "$*"; rm -rf "$TMP"; exit 1; }
 get()  {
-	if command -v uclient-fetch >/dev/null 2>&1; then uclient-fetch -q -O "$2" "$1"
-	elif command -v wget >/dev/null 2>&1; then wget -q -O "$2" "$1"
-	elif command -v curl >/dev/null 2>&1; then curl -fsSL -o "$2" "$1"
-	else return 1; fi
+	if command -v curl >/dev/null 2>&1; then curl --http1.1 -fsSL --connect-timeout 10 --max-time 120 --retry 2 -o "$2" "$1" && return 0; fi
+	if command -v uclient-fetch >/dev/null 2>&1; then uclient-fetch -q -O "$2" "$1" && return 0; fi
+	if command -v wget >/dev/null 2>&1; then wget -q -O "$2" "$1" && return 0; fi
+	return 1
 }
 
 [ -f /etc/openwrt_release ] || die "这不是 OpenWrt 系统 / not OpenWrt"
@@ -37,8 +37,12 @@ get "${P}https://github.com/$REPO/releases/download/v$VER/$PKG" "$TMP/$PKG" || g
 if [ "$LIST" = latest.txt ]; then
 	opkg install --force-reinstall "$TMP/$PKG" || die "opkg 安装失败"
 else
+	if ! command -v nlbw >/dev/null 2>&1; then apk add nlbwmon || die "nlbwmon install failed"; fi
 	apk add --allow-untrusted "$TMP/$PKG" || die "apk 安装失败"
 fi
+
+/etc/init.d/nlbwmon enable >/dev/null 2>&1 || true
+/etc/init.d/nlbwmon start >/dev/null 2>&1 || true
 
 rm -rf "$TMP" /tmp/luci-indexcache* /tmp/luci-modulecache/
 say "完成！刷新浏览器里的路由器后台即可看到 7Dollar。"

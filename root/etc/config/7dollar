@@ -2,3 +2,5 @@
 config theme 'main'
 	option palette 'clay'
 	option mode 'auto'
+	option plugin_openbox '1'
+	option plugin_openclash '0'
