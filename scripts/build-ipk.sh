@@ -13,7 +13,6 @@ TAR=tar; command -v gtar >/dev/null && TAR=gtar
 own() { if $TAR --version | grep -q GNU; then echo "--format=gnu --owner=0 --group=0 --numeric-owner"; else echo "--format ustar --no-xattrs --no-mac-metadata --uid 0 --gid 0 --uname root --gname root"; fi; }
 
 D=$TMP/data
-sh scripts/check-jsmin.sh
 sh scripts/stage.sh "$D"
 SIZE=$(du -sk "$D" | cut -f1)
 
